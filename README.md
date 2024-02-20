@@ -1,4 +1,4 @@
-<h2 align="center">DjangoStreamlit</h2>
+<h2 align="center">Django Streamlit</h2>
 <h4 align="center">Show a streamlit project within django</h4>
 <h2 align="center">
 <img alt="GitHub followers" src="https://img.shields.io/github/followers/Alfareiza?label=Follow%20me%20%3A%29&style=social">
