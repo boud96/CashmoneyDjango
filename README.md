@@ -5,7 +5,7 @@
 </h2>
 
 <h1 align="center" >
-    <img src="resources/output_cli.gif">
+    <img src="dashboard.png">
 </h1>
 
 This project demonstrate how to use a streamlit dashboard within a django environment.
