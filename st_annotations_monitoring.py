@@ -7,7 +7,7 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
 import django
 
 django.setup()
-from core.base.models import ImageAnnotation
+from core.base.models import ImageAnnotation, Transaction
 
 
 def get_annotations_from_db() -> pd.DataFrame:
@@ -18,6 +18,20 @@ def get_annotations_from_db() -> pd.DataFrame:
             )
         )
     )
+
+def get_transactions_from_db() -> pd.DataFrame:
+    return pd.DataFrame.from_records(
+        list(
+            Transaction.objects.values(
+                "date_of_transaction", "amount", "currency", "counterparty_name", "counterparty_note", "my_note", "other_note"
+            )
+        )
+    )
+
+def show_transactions(transactions_df: pd.DataFrame) -> None:
+    st.subheader(f"Transactions")
+    st.dataframe(transactions_df)
+    st.write("---")
 
 
 def show_header_metrics(annotations_df: pd.DataFrame) -> None:
@@ -68,7 +82,12 @@ def main():
     annotations_df = get_annotations_from_db()
 
     # Header metrics
-    # show_header_metrics(annotations_df)
+    show_header_metrics(annotations_df)
+
+    # Transactions
+    transactions = get_transactions_from_db()
+    show_transactions(transactions)
+
 
     # Correctness metrics
     show_quality_metrics(annotations_df, "label_correctness")
