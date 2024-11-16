@@ -1,4 +1,3 @@
-from django.contrib import admin
 import uuid
 
 from django.db import models
@@ -19,60 +18,34 @@ class AbstractBaseModel(models.Model):
         abstract = True
 
 
-class QualityTagValues(models.TextChoices):
-    """
-    This class contains the default possible values for the quality tag.
-    """
-
-    KO = "KO"
-    TO_BE_CHECKED = "TO_BE_CHECKED"
-    OK = "OK"
-
-
-def get_quality_tag_field() -> models.CharField:
-    return models.CharField(
-        max_length=24,
-        choices=QualityTagValues.choices,
-        default=QualityTagValues.TO_BE_CHECKED,
-    )
-
-
-class ImageAnnotation(AbstractBaseModel):
-    image_id = models.CharField(max_length=60, blank=False, null=False)
-    label = models.CharField(max_length=60, null=False, blank=False)
-    height = models.IntegerField(null=False, blank=False, default=-1)
-    width = models.IntegerField(null=False, blank=False, default=-1)
-    label_correctness = get_quality_tag_field()
-    image_correctness = get_quality_tag_field()
-
-    def __str__(self):
-        return str(self.image_id) + "_" + str(self.label)
-
-
-@admin.register(ImageAnnotation)
-class ImageAnnotationAdmin(admin.ModelAdmin):
-    list_display = (
-        "image_id",
-        "label",
-        "label_correctness",
-        "image_correctness",
-        "created_at",
-        "updated_at",
-    )
-
-
 class BankAccount(AbstractBaseModel):
     account_number = models.CharField(max_length=128, blank=False, null=False)
     bank_code = models.CharField(max_length=128, null=True, blank=True)
     account_name = models.CharField(max_length=128, null=False, blank=False)
+    owners = models.IntegerField(null=False, blank=False, default=1)
 
     def __str__(self):
         return str(self.account_name)
 
 
 class Transaction(AbstractBaseModel):
+    WNI_CHOICES = [
+        ('want', 'Want'),
+        ('investment', 'Investment'),
+        ('need', 'Need'),
+        ('other', 'Other'),
+    ]
+
+    def get_tags(self):
+        return ", ".join([tag.tag.name for tag in self.transactiontag_set.all()])
+    get_tags.short_description = 'Tags'
+
+    original_id = models.CharField(max_length=128, null=True, blank=True)
+
     date_of_submission = models.DateTimeField(null=True, blank=True)
     date_of_transaction = models.DateTimeField(null=False, blank=False)
+
+    bank_account = models.ForeignKey("BankAccount", on_delete=models.CASCADE, null=True, blank=True)
 
     counterparty_account_number = models.CharField(max_length=128, null=True, blank=True)
     counterparty_bank_code = models.CharField(max_length=128, null=True, blank=True)
@@ -89,6 +62,9 @@ class Transaction(AbstractBaseModel):
 
     amount = models.DecimalField(max_digits=12, decimal_places=2, null=False, blank=False)
     currency = models.CharField(max_length=3, null=False, blank=False)
+    subcategory = models.ForeignKey("Subcategory", on_delete=models.CASCADE, null=True, blank=True)
+    want_need_investment = models.CharField(max_length=128, choices=WNI_CHOICES, null=True, blank=True)
+    ignore = models.BooleanField(default=False)
 
     def __str__(self):
         counterparty = self.counterparty_name if self.counterparty_name else ""
@@ -103,7 +79,6 @@ class Category(AbstractBaseModel):
         return self.name
 
 
-
 class Subcategory(AbstractBaseModel):
     name = models.CharField(max_length=128, null=False, blank=False)
     description = models.TextField(null=True, blank=True)
@@ -111,3 +86,27 @@ class Subcategory(AbstractBaseModel):
 
     def __str__(self):
         return f"{self.name} ({self.category})"
+
+
+class Tag(AbstractBaseModel):
+    name = models.CharField(max_length=128, null=False, blank=False)
+    description = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class TransactionTag(AbstractBaseModel):
+    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE)
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.transaction} - {self.tag}"
+
+
+class Keyword(AbstractBaseModel):
+    value = models.CharField(max_length=128, null=False, blank=False)
+    subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.value} - {self.subcategory}"
