@@ -1,6 +1,8 @@
 import uuid
 
+import pandas as pd
 from django.db import models
+from django.db.models import Q
 
 
 class AbstractBaseModel(models.Model):
