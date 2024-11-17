@@ -8,9 +8,9 @@ class AbstractBaseModel(models.Model):
     This abstract class contains the common fields for all models.
     See https://docs.djangoproject.com/fr/4.0/topics/db/models/#abstract-base-classes
     """
+    objects = models.Manager()
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
