@@ -1,10 +1,8 @@
 import warnings
 import pandas as pd
 from django.core.management.base import BaseCommand
-from django.db.models import Q
-from streamlit import success
 
-from core.base.models import Transaction, BankAccount, Subcategory, Keyword
+from core.base.models import Transaction, BankAccount
 from datetime import datetime
 
 from core.utils import get_matching_keyword_objs
@@ -29,6 +27,8 @@ class CSVColumns:
 
 
 class Command(BaseCommand):
+    # TODO: Make this available in the admin interface
+    # TODO: Make it universal for other banks - form to define columns
     help = "Import transactions from a CSV file --csv_file <path_to_csv_file> --encoding <encoding> (default: utf-8)"
 
     def add_arguments(self, parser):
@@ -74,6 +74,7 @@ class Command(BaseCommand):
 
                         # Categorize subcategory TODO: Categorize WNI and tags
                         subcategory = None
+                        want_need_investment = None
                         matching_keywords = get_matching_keyword_objs([row[CSVColumns.COUNTERPARTY_NOTE]])
                         if len(matching_keywords) > 1:
                             self.stdout.write(self.style.WARNING(f'Multiple keywords found: {matching_keywords}'))
@@ -83,6 +84,7 @@ class Command(BaseCommand):
                             pass
                         else:
                             subcategory = matching_keywords[0].subcategory
+                            want_need_investment = matching_keywords[0].want_need_investment
 
                         transaction = Transaction(
                             date_of_transaction=datetime.strptime(row[CSVColumns.DATE_OF_TRANSACTION], '%d.%m.%Y'),
@@ -103,7 +105,8 @@ class Command(BaseCommand):
                             my_note=row[CSVColumns.MY_NOTE],
                             amount=row[CSVColumns.AMOUNT],
                             currency=row[CSVColumns.CURRENCY],
-                            subcategory=subcategory
+                            subcategory=subcategory,
+                            want_need_investment=want_need_investment,
                         )
                         transaction.save()
                         success_count += 1

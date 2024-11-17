@@ -23,6 +23,7 @@ class TransactionAdmin(admin.ModelAdmin):
         "amount",
         "currency",
         "subcategory",
+        "want_need_investment",
         "counterparty_name",
         "counterparty_note",
         "my_note",

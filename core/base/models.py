@@ -107,6 +107,7 @@ class TransactionTag(AbstractBaseModel):
 class Keyword(AbstractBaseModel):
     value = models.CharField(max_length=128, null=False, blank=False)
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE)
+    want_need_investment = models.CharField(max_length=128, choices=Transaction.WNI_CHOICES, null=True, blank=True)
 
     def __str__(self):
         return f"{self.value} - {self.subcategory}"
