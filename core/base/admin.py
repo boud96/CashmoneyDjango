@@ -41,7 +41,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(Subcategory)
-class Subcategory(admin.ModelAdmin):
+class SubcategoryAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "description",
