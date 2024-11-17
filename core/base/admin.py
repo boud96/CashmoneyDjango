@@ -22,6 +22,7 @@ class TransactionAdmin(admin.ModelAdmin):
         "date_of_transaction",
         "amount",
         "currency",
+        "subcategory",
         "counterparty_name",
         "counterparty_note",
         "my_note",
