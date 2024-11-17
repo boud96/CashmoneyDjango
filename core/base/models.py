@@ -36,6 +36,27 @@ class Transaction(AbstractBaseModel):
         ('other', 'Other'),
     ]
 
+    COLUMNS = ["date_of_transaction", "amount", "currency", "counterparty_name", "counterparty_note", "my_note", "other_note"]
+
+    @classmethod
+    def get_transactions_from_db(cls, filter_params: dict) -> pd.DataFrame:
+        # TODO: Add more filters
+        date_from = filter_params.get("date_from")
+        date_to = filter_params.get("date_to")
+
+        query = Q()
+        if date_from is not None:
+            query &= Q(date_of_transaction__gte=date_from)
+        if date_to is not None:
+            query &= Q(date_of_transaction__lte=date_to)
+
+        transactions = list(cls.objects.filter(query).values(*cls.COLUMNS))
+
+        if not transactions:
+            return pd.DataFrame(columns=cls.COLUMNS)
+
+        return pd.DataFrame.from_records(transactions)
+
     def get_tags(self):
         return ", ".join([tag.tag.name for tag in self.transactiontag_set.all()])
     get_tags.short_description = 'Tags'
