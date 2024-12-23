@@ -41,4 +41,4 @@ class CategoryFilter(BaseFilter):
 
         # Map selected options back to category IDs
         selected_ids = [key for key, value in self.categories.items() if value in selection]
-        self.set_param("categories", selected_ids)
+        self.set_param(self.model.__name__.lower(), selected_ids)

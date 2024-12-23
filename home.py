@@ -34,6 +34,9 @@ def main():
     category_filter = CategoryFilter(Category, label="Select Categories")
     filter_manager.add_filter("category", category_filter)
 
+    subcategory_filter = CategoryFilter(Subcategory, label="Select Subcategories")
+    filter_manager.add_filter("subcategory", subcategory_filter)
+
     # Place all widgets in the sidebar
     filter_manager.place_widgets(sidebar=True)
 

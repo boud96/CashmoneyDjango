@@ -45,10 +45,24 @@ class Transaction(AbstractBaseModel):
     @classmethod
     def get_transactions_from_db(cls, filter_params: dict) -> QuerySet:
         # TODO: Add more filters
+        # If filter is used but not added here, raise an error
+        expected_filter_keys = [
+            "date_from",
+            "date_to",
+            "category",
+            "subcategory"
+        ]
+
         date_from = filter_params.get("date_from")
         date_to = filter_params.get("date_to")
-        categories = filter_params.get("categories")
-        subcategories = filter_params.get("subcategories")
+        categories = filter_params.get("category")
+        subcategories = filter_params.get("subcategory")
+
+        extra_keys = [key for key in filter_params if key not in expected_filter_keys]
+
+        if extra_keys:
+            raise ValueError(f"Unexpected filter parameters: {', '.join(extra_keys)}")
+
 
         query = Q()
         if date_from is not None:
