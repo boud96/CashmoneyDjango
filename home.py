@@ -1,8 +1,6 @@
 import os
-
 import pandas as pd
 import streamlit as st
-
 from widgets.filters.category import CategoryFilter
 from widgets.filters.date import DateFilter
 from widgets.filters.manager import FilterManager
@@ -13,14 +11,11 @@ import django
 django.setup()
 from core.base.models import Transaction, Category, Subcategory
 
-
 from widgets.stats.overview_stats import OverviewStatsWidget
 
 
 def main():
-    st.set_page_config(
-        page_title="Cashmoney", layout="wide", page_icon=""
-    )
+    st.set_page_config(page_title="Cashmoney", layout="wide", page_icon="")
     st.title("Custom dashboard")
 
     # Initialize the FilterManager
@@ -44,22 +39,17 @@ def main():
     filter_params = filter_manager.get_combined_params()
     st.write("Combined Filter Parameters:", filter_params)
 
-
-
-
     transactions = Transaction.get_transactions_from_db(filter_params)
 
+    # Overview Stats
     overview_stats = OverviewStatsWidget(transactions)
     st.write(overview_stats.stats)
     overview_stats.place_widget()
 
-
-
+    # Display filtered transactions in dataframe
     transactions_df = Transaction.get_transactions_as_dataframe(filter_params)
     st.write(transactions_df)
 
 
 if __name__ == "__main__":
     main()
-
-
