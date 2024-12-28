@@ -29,6 +29,10 @@ class BankAccount(AbstractBaseModel):
     def __str__(self):
         return str(self.account_name)
 
+    @classmethod
+    def get_bank_accounts(cls):
+        return [(account.id, account.account_name) for account in cls.objects.all()]
+
 
 class Transaction(AbstractBaseModel):
     WNI_CHOICES = [
@@ -169,3 +173,11 @@ class Keyword(AbstractBaseModel):
 
     def __str__(self):
         return f"{self.value} - {self.subcategory}"
+
+
+class CSVMapping(AbstractBaseModel):
+    name = models.CharField(max_length=128, null=False, blank=False)
+    mapping_json = models.JSONField(null=False, blank=False)
+
+    def __str__(self):
+        return self.name

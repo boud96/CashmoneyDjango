@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from core.base.models import BankAccount, Category, Transaction, Subcategory, Tag, TransactionTag, Keyword
+from core.base.models import BankAccount, Category, Transaction, Subcategory, Tag, TransactionTag, Keyword, CSVMapping
 
 
 @admin.register(BankAccount)
@@ -57,9 +57,18 @@ class TagAdmin(admin.ModelAdmin):
         "description"
     )
 
+
 @admin.register(Keyword)
 class KeywordAdmin(admin.ModelAdmin):
     list_display = (
         "value",
         "subcategory",
+    )
+
+
+@admin.register(CSVMapping)
+class CSVMappingAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "mapping_json",
     )
