@@ -179,5 +179,9 @@ class CSVMapping(AbstractBaseModel):
     name = models.CharField(max_length=128, null=False, blank=False)
     mapping_json = models.JSONField(null=False, blank=False)
 
+    @classmethod
+    def get_csv_mappings(cls) -> list:
+        return cls.objects.all()
+
     def __str__(self):
         return self.name

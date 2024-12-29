@@ -17,6 +17,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from core.base.views import import_transactions
+
+
+class URLConstant:
+    ADMIN = "admin/"
+    IMPORT_TRANSACTIONS = "import-transactions/"
+
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path(URLConstant.ADMIN, admin.site.urls),
+    path(URLConstant.IMPORT_TRANSACTIONS, import_transactions, name="import-transactions"),
 ]
