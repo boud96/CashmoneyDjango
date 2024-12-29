@@ -65,6 +65,28 @@ def import_transactions(request):
                 bank_account = csv_map.get("bank_account")
                 bank_account_obj = BankAccount.objects.get(id=bank_account)
 
+                my_note = row.get(csv_map.get("my_note"))
+
+                other_note_columns = csv_map.get("other_note", [])  # Expecting a list of column names
+                other_note = " ".join(str(row.get(col, "")) for col in other_note_columns).strip()
+
+                counterparty_note = row.get(csv_map.get("counterparty_note"))
+
+                constant_symbol = row.get(csv_map.get("constant_symbol"))
+
+                specific_symbol = row.get(csv_map.get("specific_symbol"))
+
+                variable_symbol = row.get(csv_map.get("variable_symbol"))
+
+                transaction_type = row.get(csv_map.get("transaction_type"))
+
+                # TODO: Make it possible for account number and bank code to in one column
+                counterparty_account_number = row.get(csv_map.get("counterparty_account_number"))
+
+                counterparty_bank_code = row.get(csv_map.get("counterparty_bank_code"))
+
+                counterparty_name = row.get(csv_map.get("counterparty_name"))
+
                 transaction_data = {
                     "original_id": original_id,
                     "date_of_submission": date_of_submission,
@@ -72,7 +94,16 @@ def import_transactions(request):
                     "amount": amount,
                     "currency": currency,
                     "bank_account": bank_account_obj,
-                    # TODO: Add other fields here
+                    "my_note": my_note,
+                    "other_note": other_note,
+                    "counterparty_note": counterparty_note,
+                    "constant_symbol": constant_symbol,
+                    "specific_symbol": specific_symbol,
+                    "variable_symbol": variable_symbol,
+                    "transaction_type": transaction_type,
+                    "counterparty_account_number": counterparty_account_number,
+                    "counterparty_bank_code": counterparty_bank_code,
+                    "counterparty_name": counterparty_name,
                 }
 
                 transaction = Transaction(**transaction_data)
