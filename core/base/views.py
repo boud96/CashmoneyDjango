@@ -40,7 +40,6 @@ def import_transactions(request):
             transactions = []
             skipped_rows = []
             unable_to_categorize_rows = []
-            # TODO: Skip already existing transactions
             for index, row in df.iterrows():
                 # TODO: Method / function for each column
                 #  but might rework the CSVMap model to have fields instead of one JSON
@@ -91,8 +90,6 @@ def import_transactions(request):
 
                 counterparty_name = row.get(csv_map.get("counterparty_name"))
 
-                # TODO: Categorization
-                # Categorize subcategory TODO: Categorize WNI and tags
                 subcategory = None
                 want_need_investment = None
                 all_notes = f"{my_note} {other_note} {counterparty_note}"
