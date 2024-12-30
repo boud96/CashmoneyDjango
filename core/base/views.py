@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import CSVMapping, Transaction, BankAccount
+from ..utils import get_matching_keyword_objs
 
 
 @csrf_exempt  # TODO: Make this view secure and stuff
@@ -17,9 +18,9 @@ def import_transactions(request):
 
             csv_map = csv_mapping.mapping_json
 
-            encoding = csv_mapping.mapping_json.get("encoding")
-            header = csv_mapping.mapping_json.get("header")
-            delimiter = csv_mapping.mapping_json.get("delimiter")
+            encoding = csv_map.get("encoding")
+            header = csv_map.get("header")
+            delimiter = csv_map.get("delimiter")
 
             # Trailing delimiters handle - without it, it sometimes throws an error
             raw_data = csv_file.read().decode(encoding)
@@ -37,7 +38,10 @@ def import_transactions(request):
 
             # Import data into the Transaction model
             transactions = []
-            for _, row in df.iterrows():
+            skipped_rows = []
+            unable_to_categorize_rows = []
+            # TODO: Skip already existing transactions
+            for index, row in df.iterrows():
                 # TODO: Method / function for each column
                 #  but might rework the CSVMap model to have fields instead of one JSON
 
@@ -87,6 +91,17 @@ def import_transactions(request):
 
                 counterparty_name = row.get(csv_map.get("counterparty_name"))
 
+                # TODO: Categorization
+                # Categorize subcategory TODO: Categorize WNI and tags
+                subcategory = None
+                all_notes = f"{my_note} {other_note} {counterparty_note}"
+                matching_keywords = get_matching_keyword_objs(all_notes)
+
+                if len(matching_keywords) == 1:
+                    subcategory = matching_keywords[0].subcategory
+                elif len(matching_keywords) > 1:
+                    unable_to_categorize_rows.append(row)
+
                 transaction_data = {
                     "original_id": original_id,
                     "date_of_submission": date_of_submission,
@@ -104,14 +119,30 @@ def import_transactions(request):
                     "counterparty_account_number": counterparty_account_number,
                     "counterparty_bank_code": counterparty_bank_code,
                     "counterparty_name": counterparty_name,
+                    "subcategory": subcategory
                 }
 
                 transaction = Transaction(**transaction_data)
+                duplicate_exists = Transaction.objects.filter(
+                    date_of_transaction=transaction.date_of_transaction,
+                    amount=transaction.amount,
+                    currency=transaction.currency,
+                    bank_account=transaction.bank_account,
+                ).exists()
+
+                if duplicate_exists:
+                    skipped_rows.append(str(transaction))
+                    continue
+
                 transactions.append(transaction)
 
             Transaction.objects.bulk_create(transactions)
 
-            return JsonResponse({"success": "Transactions imported successfully"}, status=201)
+            return JsonResponse({
+                "success": f"Transactions imported successfully. Skipped {len(skipped_rows)} duplicate rows.",
+                "skipped_rows": skipped_rows,
+                "unable_to_categorize_rows": unable_to_categorize_rows
+            }, status=201)
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
