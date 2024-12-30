@@ -1,4 +1,5 @@
 import io
+import traceback
 from datetime import datetime
 
 import pandas as pd
@@ -26,8 +27,6 @@ def import_transactions(request):
             raw_data = csv_file.read().decode(encoding)
             cleaned_data = "\n".join(line.rstrip(delimiter) for line in raw_data.splitlines())
 
-            print(raw_data)
-
             df = pd.read_csv(
                 io.StringIO(cleaned_data),
                 encoding=encoding,
@@ -48,15 +47,21 @@ def import_transactions(request):
 
                 original_id = row.get(csv_map.get("original_id"))
 
-                date_of_submission = row.get(csv_map.get("date_of_submission"))
+                date_of_submission_key = csv_map.get("date_of_submission").get("value")
+                date_of_submission_format = csv_map.get("date_of_submission").get("format")
+                date_of_submission_value = row.get(date_of_submission_key)
                 # convert to datetime object
-                date_of_submission = datetime.strptime(date_of_submission, '%d.%m.%Y') if date_of_submission else None
+                date_of_submission_datetime = datetime.strptime(date_of_submission_value, date_of_submission_format) if date_of_submission_value else None
 
-                date_of_transaction = row.get(csv_map.get("date_of_transaction"))
+                date_of_transaction_key = csv_map.get("date_of_transaction").get("value")
+                date_of_transaction_format = csv_map.get("date_of_transaction").get("format")
+                date_of_transaction_value = row.get(date_of_transaction_key)
                 # convert to datetime object
-                date_of_transaction = datetime.strptime(date_of_transaction, '%d.%m.%Y') if date_of_transaction else None
+                date_of_transaction_datetime = datetime.strptime(date_of_transaction_value, date_of_transaction_format) if date_of_transaction_value else None
 
                 amount = row.get(csv_map.get("amount"))
+                print(amount)
+
                 if isinstance(amount, str):
                     amount = amount.replace(',', '.')
                 try:
@@ -67,7 +72,7 @@ def import_transactions(request):
                 currency = row.get(csv_map.get("currency"))
 
                 bank_account = csv_map.get("bank_account")
-                # TODO: If
+
                 bank_account_obj = BankAccount.objects.get(id=bank_account)
 
                 my_note = row.get(csv_map.get("my_note"))
@@ -106,8 +111,8 @@ def import_transactions(request):
 
                 transaction_data = {
                     "original_id": original_id,
-                    "date_of_submission": date_of_submission,
-                    "date_of_transaction": date_of_transaction,
+                    "date_of_submission": date_of_submission_datetime,
+                    "date_of_transaction": date_of_transaction_datetime,
                     "amount": amount,
                     "currency": currency,
                     "bank_account": bank_account_obj,
@@ -150,6 +155,7 @@ def import_transactions(request):
             }, status=201)
 
         except Exception as e:
+            print(traceback.format_exc())  # TODO: DEBUG remove
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
