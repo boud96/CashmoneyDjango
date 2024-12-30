@@ -45,6 +45,7 @@ def import_transactions(request):
                 #  but might rework the CSVMap model to have fields instead of one JSON
 
                 # TODO: If row fails, notify on frontend
+
                 original_id = row.get(csv_map.get("original_id"))
 
                 date_of_submission = row.get(csv_map.get("date_of_submission"))
@@ -66,6 +67,7 @@ def import_transactions(request):
                 currency = row.get(csv_map.get("currency"))
 
                 bank_account = csv_map.get("bank_account")
+                # TODO: If
                 bank_account_obj = BankAccount.objects.get(id=bank_account)
 
                 my_note = row.get(csv_map.get("my_note"))
@@ -84,6 +86,7 @@ def import_transactions(request):
                 transaction_type = row.get(csv_map.get("transaction_type"))
 
                 # TODO: Make it possible for account number and bank code to in one column
+                # TODO: If account number is one of the BankAccount objects, set transaction.ignore = True
                 counterparty_account_number = row.get(csv_map.get("counterparty_account_number"))
 
                 counterparty_bank_code = row.get(csv_map.get("counterparty_bank_code"))
