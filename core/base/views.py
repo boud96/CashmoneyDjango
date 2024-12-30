@@ -94,11 +94,13 @@ def import_transactions(request):
                 # TODO: Categorization
                 # Categorize subcategory TODO: Categorize WNI and tags
                 subcategory = None
+                want_need_investment = None
                 all_notes = f"{my_note} {other_note} {counterparty_note}"
                 matching_keywords = get_matching_keyword_objs(all_notes)
 
                 if len(matching_keywords) == 1:
                     subcategory = matching_keywords[0].subcategory
+                    want_need_investment = matching_keywords[0].want_need_investment
                 elif len(matching_keywords) > 1:
                     unable_to_categorize_rows.append(row)
 
@@ -119,12 +121,15 @@ def import_transactions(request):
                     "counterparty_account_number": counterparty_account_number,
                     "counterparty_bank_code": counterparty_bank_code,
                     "counterparty_name": counterparty_name,
-                    "subcategory": subcategory
+                    "subcategory": subcategory,
+                    "want_need_investment": want_need_investment
                 }
 
                 transaction = Transaction(**transaction_data)
                 duplicate_exists = Transaction.objects.filter(
+                    original_id=transaction.original_id,
                     date_of_transaction=transaction.date_of_transaction,
+                    date_of_submission=transaction.date_of_submission,
                     amount=transaction.amount,
                     currency=transaction.currency,
                     bank_account=transaction.bank_account,
