@@ -8,7 +8,6 @@ class BankAccountAdmin(admin.ModelAdmin):
     list_display = (
         "account_name",
         "account_number",
-        "bank_code",
     )
 
 

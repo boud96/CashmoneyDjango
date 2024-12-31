@@ -22,7 +22,6 @@ class AbstractBaseModel(models.Model):
 
 class BankAccount(AbstractBaseModel):
     account_number = models.CharField(max_length=128, blank=False, null=False)
-    bank_code = models.CharField(max_length=128, null=True, blank=True)
     account_name = models.CharField(max_length=128, null=False, blank=False)
     owners = models.IntegerField(null=False, blank=False, default=1)
 
