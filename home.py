@@ -63,6 +63,5 @@ def main():
     st.write(transactions_df)
 
 
-
 if __name__ == "__main__":
     main()
