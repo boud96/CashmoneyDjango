@@ -52,7 +52,7 @@ def get_currency(row: pd.Series, csv_map: dict) -> str:
 
 def get_bank_account(row: pd.Series, csv_map: dict) -> BankAccount:
     bank_account = csv_map.get("bank_account")
-    return BankAccount.objects.get(id=bank_account)
+    return BankAccount.objects.get(id=bank_account)  # TODO: Use bank acc ID instead of obj UUID?
 
 
 def get_my_note(row: pd.Series, csv_map: dict) -> str:
@@ -93,8 +93,11 @@ def get_counterparty_account_number(row: pd.Series, csv_map: dict) -> str:
     """
     acc_num = csv_map.get("counterparty_account_number")
     bank_code = csv_map.get("counterparty_bank_code")
-    if bank_code:
-        return f"{row.get(bank_code)} {row.get(acc_num)}"
+
+    acc_num_value = row.get(acc_num)
+    bank_code_value = row.get(bank_code)
+    if bank_code_value:
+        return f"{acc_num_value}/{bank_code_value}"
     return row.get(acc_num)
 
 
@@ -124,8 +127,9 @@ def import_transactions(request):
                 encoding=encoding,
                 header=header,
                 delimiter=delimiter,
-                on_bad_lines="warn"
-            ).fillna('').astype(str)
+                on_bad_lines="warn",
+                dtype=str
+            ).fillna('')
 
             # Import data into the Transaction model
             transactions = []
@@ -163,6 +167,10 @@ def import_transactions(request):
                 elif len(matching_keywords) > 1:
                     unable_to_categorize_rows.append(row)
 
+                ignore = False
+                if BankAccount.objects.filter(account_number=counterparty_account_number).exists():
+                    ignore = True
+
                 transaction_data = {
                     "original_id": original_id,
                     "date_of_submission": date_of_submission,
@@ -180,7 +188,8 @@ def import_transactions(request):
                     "counterparty_account_number": counterparty_account_number,
                     "counterparty_name": counterparty_name,
                     "subcategory": subcategory,
-                    "want_need_investment": want_need_investment
+                    "want_need_investment": want_need_investment,
+                    "ignore": ignore
                 }
 
                 transaction = Transaction(**transaction_data)
