@@ -40,7 +40,7 @@ def main():
     show_ignored_filter = ShowIgnoredFilter()
     filter_manager.add_filter("show_ignored", show_ignored_filter)
 
-    # Add BankAccountFilter
+    # Add BankAccountFilter  # TODO: Remove None?
     bank_account_filter = BankAccountFilter(BankAccount, label="Select Bank Accounts")
     filter_manager.add_filter("bank_account", bank_account_filter)
 
