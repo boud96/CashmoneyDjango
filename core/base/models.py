@@ -53,19 +53,20 @@ class Transaction(AbstractBaseModel):
             "date_from",
             "date_to",
             "category",
-            "subcategory"
+            "subcategory",
+            "ignore"
         ]
 
         date_from = filter_params.get("date_from")
         date_to = filter_params.get("date_to")
         categories = filter_params.get("category")
         subcategories = filter_params.get("subcategory")
+        ignore = filter_params.get("ignore", False)
 
         extra_keys = [key for key in filter_params if key not in expected_filter_keys]
 
         if extra_keys:
             raise ValueError(f"Unexpected filter parameters: {', '.join(extra_keys)}")
-
 
         query = Q()
         if date_from is not None:
@@ -73,17 +74,20 @@ class Transaction(AbstractBaseModel):
         if date_to is not None:
             query &= Q(date_of_transaction__lte=date_to)
         if categories is not None:
-            if 'None' in categories:
-                categories = [cat for cat in categories if cat != 'None']
+            if "None" in categories:
+                categories = [cat for cat in categories if cat != "None"]
                 query &= (Q(subcategory__category__in=categories) | Q(subcategory__category__isnull=True))
             else:
                 query &= Q(subcategory__category__in=categories)
         if subcategories is not None:
-            if 'None' in subcategories:
-                subcategories = [subcat for subcat in subcategories if subcat != 'None']
+            if "None" in subcategories:
+                subcategories = [subcat for subcat in subcategories if subcat != "None"]
                 query &= (Q(subcategory__in=subcategories) | Q(subcategory__isnull=True))
             else:
                 query &= Q(subcategory__in=subcategories)
+
+        if ignore:
+            query &= ~Q(ignore=True)
 
         return cls.objects.filter(query).values(*cls.get_field_names())
 
