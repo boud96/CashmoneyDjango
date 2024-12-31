@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 from widgets.filters.category import CategoryFilter
 from widgets.filters.date import DateFilter
+from widgets.filters.ignored import ShowIgnoredFilter
 from widgets.filters.manager import FilterManager
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
@@ -25,12 +26,16 @@ def main():
     date_filter = DateFilter()
     filter_manager.add_filter("date", date_filter)
 
-    # # Add CategoryFilter
+    # Add CategoryFilter
     category_filter = CategoryFilter(Category, label="Select Categories")
     filter_manager.add_filter("category", category_filter)
 
     subcategory_filter = CategoryFilter(Subcategory, label="Select Subcategories")
     filter_manager.add_filter("subcategory", subcategory_filter)
+
+    # Add ShowIgnoredFilter for the "show_ignored" parameter
+    show_ignored_filter = ShowIgnoredFilter()
+    filter_manager.add_filter("show_ignored", show_ignored_filter)
 
     # Place all widgets in the sidebar
     filter_manager.place_widgets(sidebar=True)
