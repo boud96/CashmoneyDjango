@@ -15,6 +15,7 @@ class TransactionTagInline(admin.TabularInline):
     model = TransactionTag
     extra = 1
 
+
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     list_display = (
