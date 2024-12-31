@@ -54,14 +54,14 @@ class Transaction(AbstractBaseModel):
             "date_to",
             "category",
             "subcategory",
-            "ignore"
+            "show_ignored"
         ]
 
         date_from = filter_params.get("date_from")
         date_to = filter_params.get("date_to")
         categories = filter_params.get("category")
         subcategories = filter_params.get("subcategory")
-        ignore = filter_params.get("ignore", False)
+        show_ignored = filter_params.get("show_ignored", False)
 
         extra_keys = [key for key in filter_params if key not in expected_filter_keys]
 
@@ -86,7 +86,7 @@ class Transaction(AbstractBaseModel):
             else:
                 query &= Q(subcategory__in=subcategories)
 
-        if ignore:
+        if show_ignored:
             query &= ~Q(ignore=True)
 
         return cls.objects.filter(query).values(*cls.get_field_names())
