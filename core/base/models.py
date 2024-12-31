@@ -54,7 +54,8 @@ class Transaction(AbstractBaseModel):
             "date_to",
             "category",
             "subcategory",
-            "show_ignored"
+            "show_ignored",
+            "bank_account"
         ]
 
         date_from = filter_params.get("date_from")
@@ -62,6 +63,7 @@ class Transaction(AbstractBaseModel):
         categories = filter_params.get("category")
         subcategories = filter_params.get("subcategory")
         show_ignored = filter_params.get("show_ignored", False)
+        bank_accounts = filter_params.get("bank_account")
 
         extra_keys = [key for key in filter_params if key not in expected_filter_keys]
 
@@ -88,6 +90,13 @@ class Transaction(AbstractBaseModel):
 
         if show_ignored:
             query &= ~Q(ignore=True)
+
+        if bank_accounts is not None:
+            if "None" in bank_accounts:
+                bank_accounts = [account for account in bank_accounts if account != "None"]
+                query &= (Q(bank_account__in=bank_accounts) | Q(bank_account__isnull=True))
+            else:
+                query &= Q(bank_account__in=bank_accounts)
 
         return cls.objects.filter(query).values(*cls.get_field_names())
 

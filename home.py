@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import streamlit as st
+
+from widgets.filters.bank_account import BankAccountFilter
 from widgets.filters.category import CategoryFilter
 from widgets.filters.date import DateFilter
 from widgets.filters.ignored import ShowIgnoredFilter
@@ -10,7 +12,7 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
 import django
 
 django.setup()
-from core.base.models import Transaction, Category, Subcategory
+from core.base.models import Transaction, Category, Subcategory, BankAccount
 
 from widgets.stats.overview_stats import OverviewStatsWidget
 
@@ -30,12 +32,17 @@ def main():
     category_filter = CategoryFilter(Category, label="Select Categories")
     filter_manager.add_filter("category", category_filter)
 
+    # Add SubcategoryFilter
     subcategory_filter = CategoryFilter(Subcategory, label="Select Subcategories")
     filter_manager.add_filter("subcategory", subcategory_filter)
 
-    # Add ShowIgnoredFilter for the "show_ignored" parameter
+    # Add ShowIgnoredFilter
     show_ignored_filter = ShowIgnoredFilter()
     filter_manager.add_filter("show_ignored", show_ignored_filter)
+
+    # Add BankAccountFilter
+    bank_account_filter = BankAccountFilter(BankAccount, label="Select Bank Accounts")
+    filter_manager.add_filter("bank_account", bank_account_filter)
 
     # Place all widgets in the sidebar
     filter_manager.place_widgets(sidebar=True)
@@ -54,6 +61,7 @@ def main():
     # Display filtered transactions in dataframe
     transactions_df = Transaction.get_transactions_as_dataframe(filter_params)
     st.write(transactions_df)
+
 
 
 if __name__ == "__main__":
