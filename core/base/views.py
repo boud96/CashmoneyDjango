@@ -1,6 +1,7 @@
 import io
 import traceback
 from datetime import datetime
+from typing import Optional
 
 import pandas as pd
 from django.http import JsonResponse
@@ -8,6 +9,97 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .models import CSVMapping, Transaction, BankAccount
 from ..utils import get_matching_keyword_objs
+
+
+def get_original_id(row: pd.Series, csv_map: dict) -> str:
+    return row.get(csv_map.get("original_id"))
+
+
+def get_date_of_submission(row: pd.Series, csv_map: dict) -> Optional[datetime]:
+    dof_key = csv_map.get("date_of_submission").get("value")
+    dof_format = csv_map.get("date_of_submission").get("format")
+
+    dof_value = row.get(dof_key)
+    if dof_value:
+        return datetime.strptime(dof_value, dof_format)
+    return None
+
+
+def get_date_of_transaction(row: pd.Series, csv_map: dict) -> datetime:
+    """
+    Get the date of transaction from the row.
+    The date of transaction is required, so if it's not found, raise an error.
+    """
+    dot_key = csv_map.get("date_of_transaction").get("value")
+    dot_format = csv_map.get("date_of_transaction").get("format")
+
+    dot_value = row.get(dot_key)
+    if not dot_value:
+        raise ValueError(f"Value for {dot_key} not found")
+    return datetime.strptime(dot_value, dot_format)
+
+
+def get_amount(row: pd.Series, csv_map: dict) -> float:
+    amount = row.get(csv_map.get("amount"))
+    if isinstance(amount, str):
+        amount = amount.replace(',', '.')
+    return float(amount)
+
+
+def get_currency(row: pd.Series, csv_map: dict) -> str:
+    return row.get(csv_map.get("currency"))
+
+
+def get_bank_account(row: pd.Series, csv_map: dict) -> BankAccount:
+    bank_account = csv_map.get("bank_account")
+    return BankAccount.objects.get(id=bank_account)
+
+
+def get_my_note(row: pd.Series, csv_map: dict) -> str:
+    return row.get(csv_map.get("my_note"))
+
+
+def get_other_note(row: pd.Series, csv_map: dict) -> str:
+    other_note_columns = csv_map.get("other_note", [])  # Expecting a list of column names
+    other_note = " ".join(str(row.get(col, "")) for col in other_note_columns).strip()
+    return other_note
+
+
+def get_counterparty_note(row: pd.Series, csv_map: dict) -> str:
+    return row.get(csv_map.get("counterparty_note"))
+
+
+def get_constant_symbol(row: pd.Series, csv_map: dict) -> str:
+    return row.get(csv_map.get("constant_symbol"))
+
+
+def get_specific_symbol(row: pd.Series, csv_map: dict) -> str:
+    return row.get(csv_map.get("specific_symbol"))
+
+
+def get_variable_symbol(row: pd.Series, csv_map: dict) -> str:
+    return row.get(csv_map.get("variable_symbol"))
+
+
+def get_transaction_type(row: pd.Series, csv_map: dict) -> str:
+    return row.get(csv_map.get("transaction_type"))
+
+
+def get_counterparty_account_number(row: pd.Series, csv_map: dict) -> str:
+    """
+    Get the counterparty account number from the row.
+    If the bank code is provided, return the bank code and account number together.
+    Some csv files have the bank code and account number in one column, some in separate columns.
+    """
+    acc_num = csv_map.get("counterparty_account_number")
+    bank_code = csv_map.get("counterparty_bank_code")
+    if bank_code:
+        return f"{row.get(bank_code)} {row.get(acc_num)}"
+    return row.get(acc_num)
+
+
+def get_counterparty_name(row, csv_map):
+    return row.get(csv_map.get("counterparty_name"))
 
 
 @csrf_exempt  # TODO: Make this view secure and stuff
@@ -40,68 +132,30 @@ def import_transactions(request):
             skipped_rows = []
             unable_to_categorize_rows = []
             for index, row in df.iterrows():
-                # TODO: Method / function for each column
-                #  but might rework the CSVMap model to have fields instead of one JSON
+                # TODO: Might rework the CSVMap model to have fields instead of one JSON
 
                 # TODO: If row fails, notify on frontend
 
-                original_id = row.get(csv_map.get("original_id"))
-
-                date_of_submission_key = csv_map.get("date_of_submission").get("value")
-                date_of_submission_format = csv_map.get("date_of_submission").get("format")
-                date_of_submission_value = row.get(date_of_submission_key)
-                # convert to datetime object
-                date_of_submission_datetime = datetime.strptime(date_of_submission_value, date_of_submission_format) if date_of_submission_value else None
-
-                date_of_transaction_key = csv_map.get("date_of_transaction").get("value")
-                date_of_transaction_format = csv_map.get("date_of_transaction").get("format")
-                date_of_transaction_value = row.get(date_of_transaction_key)
-                # convert to datetime object
-                date_of_transaction_datetime = datetime.strptime(date_of_transaction_value, date_of_transaction_format) if date_of_transaction_value else None
-
-                amount = row.get(csv_map.get("amount"))
-                print(amount)
-
-                if isinstance(amount, str):
-                    amount = amount.replace(',', '.')
-                try:
-                    amount = float(amount)
-                except ValueError:
-                    amount = None
-
-                currency = row.get(csv_map.get("currency"))
-
-                bank_account = csv_map.get("bank_account")
-
-                bank_account_obj = BankAccount.objects.get(id=bank_account)
-
-                my_note = row.get(csv_map.get("my_note"))
-
-                other_note_columns = csv_map.get("other_note", [])  # Expecting a list of column names
-                other_note = " ".join(str(row.get(col, "")) for col in other_note_columns).strip()
-
-                counterparty_note = row.get(csv_map.get("counterparty_note"))
-
-                constant_symbol = row.get(csv_map.get("constant_symbol"))
-
-                specific_symbol = row.get(csv_map.get("specific_symbol"))
-
-                variable_symbol = row.get(csv_map.get("variable_symbol"))
-
-                transaction_type = row.get(csv_map.get("transaction_type"))
-
-                # TODO: Make it possible for account number and bank code to in one column
-                # TODO: If account number is one of the BankAccount objects, set transaction.ignore = True
-                counterparty_account_number = row.get(csv_map.get("counterparty_account_number"))
-
-                counterparty_bank_code = row.get(csv_map.get("counterparty_bank_code"))
-
-                counterparty_name = row.get(csv_map.get("counterparty_name"))
+                original_id = get_original_id(row, csv_map)
+                date_of_submission = get_date_of_submission(row, csv_map)
+                date_of_transaction = get_date_of_transaction(row, csv_map)
+                amount = get_amount(row, csv_map)
+                currency = get_currency(row, csv_map)
+                bank_account = get_bank_account(row, csv_map)
+                my_note = get_my_note(row, csv_map)
+                other_note = get_other_note(row, csv_map)
+                counterparty_note = get_counterparty_note(row, csv_map)
+                constant_symbol = get_constant_symbol(row, csv_map)
+                specific_symbol = get_specific_symbol(row, csv_map)
+                variable_symbol = get_variable_symbol(row, csv_map)
+                transaction_type = get_transaction_type(row, csv_map)
+                counterparty_account_number = get_counterparty_account_number(row, csv_map)
+                counterparty_name = get_counterparty_name(row, csv_map)
 
                 subcategory = None
                 want_need_investment = None
-                all_notes = f"{my_note} {other_note} {counterparty_note}"
-                matching_keywords = get_matching_keyword_objs(all_notes)
+                lookup_str = f"{my_note} {other_note} {counterparty_note} {counterparty_name}"
+                matching_keywords = get_matching_keyword_objs(lookup_str)
 
                 if len(matching_keywords) == 1:
                     subcategory = matching_keywords[0].subcategory
@@ -111,11 +165,11 @@ def import_transactions(request):
 
                 transaction_data = {
                     "original_id": original_id,
-                    "date_of_submission": date_of_submission_datetime,
-                    "date_of_transaction": date_of_transaction_datetime,
+                    "date_of_submission": date_of_submission,
+                    "date_of_transaction": date_of_transaction,
                     "amount": amount,
                     "currency": currency,
-                    "bank_account": bank_account_obj,
+                    "bank_account": bank_account,
                     "my_note": my_note,
                     "other_note": other_note,
                     "counterparty_note": counterparty_note,
@@ -124,7 +178,6 @@ def import_transactions(request):
                     "variable_symbol": variable_symbol,
                     "transaction_type": transaction_type,
                     "counterparty_account_number": counterparty_account_number,
-                    "counterparty_bank_code": counterparty_bank_code,
                     "counterparty_name": counterparty_name,
                     "subcategory": subcategory,
                     "want_need_investment": want_need_investment

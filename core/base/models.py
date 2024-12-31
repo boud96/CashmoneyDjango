@@ -110,7 +110,6 @@ class Transaction(AbstractBaseModel):
     bank_account = models.ForeignKey("BankAccount", on_delete=models.CASCADE, null=True, blank=True)
 
     counterparty_account_number = models.CharField(max_length=128, null=True, blank=True)
-    counterparty_bank_code = models.CharField(max_length=128, null=True, blank=True)
     counterparty_name = models.CharField(max_length=128, null=True, blank=True)
 
     transaction_type = models.CharField(max_length=128, null=True, blank=True)
