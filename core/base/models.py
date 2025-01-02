@@ -88,7 +88,7 @@ class Transaction(AbstractBaseModel):
             else:
                 query &= Q(subcategory__in=subcategories)
 
-        if show_ignored:
+        if not show_ignored:
             query &= ~Q(ignore=True)
 
         if bank_accounts is not None:
