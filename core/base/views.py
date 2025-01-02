@@ -42,12 +42,15 @@ def get_date_of_transaction(row: pd.Series, csv_map: dict) -> datetime:
 def get_amount(row: pd.Series, csv_map: dict) -> float:
     amount = row.get(csv_map.get("amount"))
     if isinstance(amount, str):
-        amount = amount.replace(',', '.')
+        amount = amount.replace(",", ".").replace(" ", "")
     return float(amount)
 
 
 def get_currency(row: pd.Series, csv_map: dict) -> str:
-    return row.get(csv_map.get("currency"))
+    currency = row.get(csv_map.get("currency"))
+    if not currency:
+        currency = "CZK"  # TODO: Model for currency and convert to default currency?
+    return currency
 
 
 def get_bank_account(row: pd.Series, csv_map: dict) -> BankAccount:
@@ -98,7 +101,7 @@ def get_counterparty_account_number(row: pd.Series, csv_map: dict) -> str:
     bank_code_value = row.get(bank_code)
     if bank_code_value:
         return f"{acc_num_value}/{bank_code_value}"
-    return row.get(acc_num)
+    return row.get(acc_num).replace(" ", "")
 
 
 def get_counterparty_name(row, csv_map):
@@ -132,9 +135,10 @@ def import_transactions(request):
             ).fillna('')
 
             # Import data into the Transaction model
-            transactions = []
-            skipped_rows = []
-            unable_to_categorize_rows = []
+            created = []
+            duplicates = []
+            category_overlap = []
+            uncategorized = []
             for index, row in df.iterrows():
                 # TODO: Might rework the CSVMap model to have fields instead of one JSON
 
@@ -161,11 +165,15 @@ def import_transactions(request):
                 lookup_str = f"{my_note} {other_note} {counterparty_note} {counterparty_name}"
                 matching_keywords = get_matching_keyword_objs(lookup_str)
 
+                is_category_overlap = False
+                is_uncategorized = False
                 if len(matching_keywords) == 1:
                     subcategory = matching_keywords[0].subcategory
                     want_need_investment = matching_keywords[0].want_need_investment
                 elif len(matching_keywords) > 1:
-                    unable_to_categorize_rows.append(row)
+                    is_category_overlap = True
+                else:
+                    is_uncategorized = True
 
                 ignore = False
                 if BankAccount.objects.filter(account_number=counterparty_account_number).exists():
@@ -203,17 +211,38 @@ def import_transactions(request):
                 ).exists()
 
                 if duplicate_exists:
-                    skipped_rows.append(str(transaction))
+                    duplicates.append(str(transaction))
                     continue
+                if is_category_overlap:
+                    category_overlap.append(str(transaction))
+                if is_uncategorized:
+                    uncategorized.append(str(transaction))
 
-                transactions.append(transaction)
+                created.append(transaction)
 
-            Transaction.objects.bulk_create(transactions)
+            Transaction.objects.bulk_create(created)
 
             return JsonResponse({
-                "success": f"Transactions imported successfully. Skipped {len(skipped_rows)} duplicate rows.",
-                "skipped_rows": skipped_rows,
-                "unable_to_categorize_rows": unable_to_categorize_rows
+                "created": {
+                    "message": f"Succesfully imported {len(created)} transactions",
+                    "transactions": [str(t) for t in created]},
+
+                "category_overlap": {
+                    "message": f"Uncategorized {len(category_overlap)} transactions due to category overlap",
+                    "transactions": category_overlap
+                },
+
+                "uncategorized": {
+                    "message": f"Uncategorized {len(uncategorized)} transactions due to no matching keywords",
+                    "transactions": uncategorized
+                },
+
+                "duplicates": {
+                    "message": f"Skipped {len(duplicates)} duplicate transactions",
+                    "transactions": duplicates
+                },
+
+
             }, status=201)
 
         except Exception as e:
