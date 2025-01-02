@@ -1,4 +1,6 @@
 import os
+
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -7,6 +9,7 @@ from widgets.filters.category import CategoryFilter
 from widgets.filters.date import DateFilter
 from widgets.filters.ignored import ShowIgnoredFilter
 from widgets.filters.manager import FilterManager
+from widgets.stats.bar_chart import BarChartWidget
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
 import django
@@ -57,6 +60,9 @@ def main():
     overview_stats = OverviewStatsWidget(transactions)
     st.write(overview_stats.stats)
     overview_stats.place_widget()
+
+    bar_chart = BarChartWidget(transactions)
+    bar_chart.place_widget()
 
     # Display filtered transactions in dataframe
     transactions_df = Transaction.get_transactions_as_dataframe(filter_params)
