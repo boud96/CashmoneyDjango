@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from widgets.filters.bank_account import BankAccountFilter
@@ -10,6 +11,7 @@ from widgets.filters.date import DateFilter
 from widgets.filters.ignored import ShowIgnoredFilter
 from widgets.filters.manager import FilterManager
 from widgets.stats.bar_chart import BarChartWidget
+from widgets.stats.sun_burst import TransactionSunburstWidget
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
 import django
@@ -67,6 +69,10 @@ def main():
     # Display filtered transactions in dataframe
     transactions_df = Transaction.get_transactions_as_dataframe(filter_params)
     st.write(transactions_df)
+
+    # Example usage
+    transaction_sunburst = TransactionSunburstWidget(transactions_df)
+    transaction_sunburst.place_widget()
 
 
 if __name__ == "__main__":
