@@ -134,6 +134,10 @@ def import_transactions(request):
                 dtype=str
             ).fillna('')
 
+            # Clean up unwanted whitespaces
+            df.columns = df.columns.str.replace(r'\xa0', ' ', regex=True)
+            df = df.applymap(lambda x: x.replace(r'\xa0', ' ') if isinstance(x, str) else x)
+
             # Import data into the Transaction model
             created = []
             duplicates = []
@@ -222,28 +226,28 @@ def import_transactions(request):
 
             Transaction.objects.bulk_create(created)
 
-            return JsonResponse({
-                "created": {
-                    "message": f"Succesfully imported {len(created)} transactions",
-                    "transactions": [str(t) for t in created]},
-
-                "category_overlap": {
-                    "message": f"Uncategorized {len(category_overlap)} transactions due to category overlap",
-                    "transactions": category_overlap
-                },
-
-                "uncategorized": {
-                    "message": f"Uncategorized {len(uncategorized)} transactions due to no matching keywords",
-                    "transactions": uncategorized
-                },
-
-                "duplicates": {
-                    "message": f"Skipped {len(duplicates)} duplicate transactions",
-                    "transactions": duplicates
-                },
-
-
-            }, status=201)
+            return JsonResponse(
+                {
+                    "loaded": len(df),
+                    "created": {
+                        "message": f"Succesfully imported {len(created)} transactions",
+                        "transactions": [str(t) for t in created],
+                        "category_overlap": {
+                            "message": f"Uncategorized {len(category_overlap)} transactions due to category overlap",
+                            "transactions": category_overlap
+                        },
+                        "uncategorized": {
+                            "message": f"Uncategorized {len(uncategorized)} transactions due to no matching keywords",
+                            "transactions": uncategorized
+                        }
+                    },
+                    "skipped": {
+                        "message": f"Skipped {len(duplicates)} transactions due to duplicates",
+                        "transactions": duplicates
+                    }  # TODO: whole loop into Try-Except, append other reasons to generic skipped
+                    # add other skip types if needed
+                }
+                , status=201)
 
         except Exception as e:
             print(traceback.format_exc())  # TODO: DEBUG remove
