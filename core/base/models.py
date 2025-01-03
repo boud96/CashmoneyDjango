@@ -2,7 +2,7 @@ import uuid
 
 import pandas as pd
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import Q, QuerySet, F
 
 
 class AbstractBaseModel(models.Model):
@@ -98,7 +98,22 @@ class Transaction(AbstractBaseModel):
             else:
                 query &= Q(bank_account__in=bank_accounts)
 
-        return cls.objects.filter(query).values(*cls.get_field_names())
+        field_names = cls.get_field_names()
+        related_fields = [
+            "subcategory__name",
+            "subcategory__category__name"
+        ]
+
+        annotation = {
+            "subcategory_name": F("subcategory__name"),
+            "category_name": F("subcategory__category__name")
+        }
+
+        return (
+            cls.objects.filter(query)
+            .annotate(**annotation)
+            .values(*field_names, *related_fields, "subcategory_name", "category_name")
+        )
 
     @classmethod
     def get_transactions_as_dataframe(cls, filter_params: dict) -> pd.DataFrame:
