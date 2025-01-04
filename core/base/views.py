@@ -53,9 +53,8 @@ def get_currency(row: pd.Series, csv_map: dict) -> str:
     return currency
 
 
-def get_bank_account(row: pd.Series, csv_map: dict) -> BankAccount:
-    bank_account = csv_map.get("bank_account")
-    return BankAccount.objects.get(id=bank_account)  # TODO: Use bank acc ID instead of obj UUID?
+def get_bank_account(bank_account_id: str) -> BankAccount:
+    return BankAccount.objects.get(id=bank_account_id)
 
 
 def get_my_note(row: pd.Series, csv_map: dict) -> str:
@@ -113,6 +112,7 @@ def import_transactions(request):
     if request.method == "POST":
         try:
             csv_mapping = CSVMapping.objects.get(id=request.POST.get("id"))
+            bank_account_id = request.POST.get("bank_account_id")
             csv_file = request.FILES.get("csv_file")
 
             csv_map = csv_mapping.mapping_json
@@ -136,7 +136,7 @@ def import_transactions(request):
 
             # Clean up unwanted whitespaces
             df.columns = df.columns.str.replace(r'\xa0', ' ', regex=True)
-            df = df.applymap(lambda x: x.replace(r'\xa0', ' ') if isinstance(x, str) else x)
+            df = df.map(lambda x: x.replace(r'\xa0', ' ') if isinstance(x, str) else x)
 
             # Import data into the Transaction model
             created = []
@@ -153,7 +153,7 @@ def import_transactions(request):
                 date_of_transaction = get_date_of_transaction(row, csv_map)
                 amount = get_amount(row, csv_map)
                 currency = get_currency(row, csv_map)
-                bank_account = get_bank_account(row, csv_map)
+                bank_account = get_bank_account(bank_account_id)
                 my_note = get_my_note(row, csv_map)
                 other_note = get_other_note(row, csv_map)
                 counterparty_note = get_counterparty_note(row, csv_map)

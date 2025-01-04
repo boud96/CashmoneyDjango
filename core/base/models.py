@@ -30,7 +30,7 @@ class BankAccount(AbstractBaseModel):
 
     @classmethod
     def get_bank_accounts(cls):
-        return [(account.id, account.account_name) for account in cls.objects.all()]
+        return cls.objects.all()
 
 
 class Transaction(AbstractBaseModel):

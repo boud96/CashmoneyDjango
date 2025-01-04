@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-from core.base.models import CSVMapping
+from core.base.models import CSVMapping, BankAccount
 from core.urls import URLConstant
 
 full_url = "http://127.0.0.1:8000/" + URLConstant.IMPORT_TRANSACTIONS  # TODO: Let backend handle this
@@ -15,6 +15,11 @@ with st.form("import_csv_form"):
     selected_name = st.selectbox("Select CSV Mapping", options=list(mapping_dict.keys()))
     selected_mapping = mapping_dict[selected_name]
 
+    bank_accounts = BankAccount.get_bank_accounts()
+    bank_account_dict = {account.account_name: account for account in bank_accounts}
+    bank_account = st.selectbox("Select Bank Account", options=list(bank_account_dict))
+    selected_bank_account = bank_account_dict[bank_account]
+
     submitted = st.form_submit_button("Submit")
 
     if submitted:
@@ -22,7 +27,10 @@ with st.form("import_csv_form"):
             st.error("Please upload a valid CSV file.")
         else:
             try:
-                payload = {"id": str(selected_mapping.id)}
+                payload = {
+                    "id": str(selected_mapping.id),
+                    "bank_account_id": str(selected_bank_account.id),
+                }
                 files = {"csv_file": uploaded_file}
 
                 st.spinner("Submitting data...")
