@@ -96,11 +96,17 @@ def get_counterparty_account_number(row: pd.Series, csv_map: dict) -> str:
     acc_num = csv_map.get("counterparty_account_number")
     bank_code = csv_map.get("counterparty_bank_code")
 
-    acc_num_value = row.get(acc_num)
-    bank_code_value = row.get(bank_code)
-    if bank_code_value:
-        return f"{acc_num_value}/{bank_code_value}"
-    return row.get(acc_num).replace(" ", "")
+    acc_num_value = row.get(acc_num).strip().replace(" ", "")
+    bank_code_value = row.get(bank_code).strip().replace(" ", "")
+
+    if not acc_num_value and not bank_code_value:
+        return ""
+    if not acc_num_value:
+        return bank_code_value
+    if not bank_code_value:
+        return acc_num_value
+
+    return f"{acc_num_value}/{bank_code_value}"
 
 
 def get_counterparty_name(row, csv_map):
