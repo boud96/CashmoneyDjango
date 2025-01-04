@@ -11,6 +11,7 @@ from widgets.filters.date import DateFilter
 from widgets.filters.ignored import ShowIgnoredFilter
 from widgets.filters.manager import FilterManager
 from widgets.stats.bar_chart import BarChartWidget
+from widgets.stats.dataframe import DataFrameWidget
 from widgets.stats.sun_burst import TransactionSunburstWidget
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
@@ -63,14 +64,15 @@ def main():
     st.write(overview_stats.stats)
     overview_stats.place_widget()
 
+    # Bar Chart
     bar_chart = BarChartWidget(transactions)
     bar_chart.place_widget()
 
-    # Display filtered transactions in dataframe
-    transactions_df = Transaction.get_transactions_as_dataframe(filter_params)
-    st.write(transactions_df)
+    # DataFrame
+    transactions_dataframe = DataFrameWidget(transactions)
+    transactions_dataframe.place_widget()
 
-    # Example usage
+    transactions_df = Transaction.get_transactions_as_dataframe(filter_params)  # TODO: This won't be needed, make SunburstWidget use transactions directly
     transaction_sunburst = TransactionSunburstWidget(transactions_df)
     transaction_sunburst.place_widget()
 

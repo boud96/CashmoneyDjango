@@ -99,20 +99,22 @@ class Transaction(AbstractBaseModel):
                 query &= Q(bank_account__in=bank_accounts)
 
         field_names = cls.get_field_names()
-        related_fields = [
+        related_fields = [  # TODO: Remove or something, not needed?
             "subcategory__name",
-            "subcategory__category__name"
+            "subcategory__category__name",
+            "bank_account__account_name"
         ]
 
         annotation = {
             "subcategory_name": F("subcategory__name"),
-            "category_name": F("subcategory__category__name")
+            "category_name": F("subcategory__category__name"),
+            "account_name": F("bank_account__account_name")
         }
 
         return (
             cls.objects.filter(query)
             .annotate(**annotation)
-            .values(*field_names, *related_fields, "subcategory_name", "category_name")
+            .values(*field_names, *related_fields, "subcategory_name", "category_name", "account_name")
         )
 
     @classmethod

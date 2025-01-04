@@ -22,7 +22,7 @@ class TransactionSunburstWidget:
         negative_df_grouped = negative_df.groupby(['category_name', 'subcategory_name'], as_index=False)['amount'].sum()
         negative_df_grouped['amount'] = negative_df_grouped['amount'].abs()
 
-        positive_colors = px.colors.qualitative.Prism  # TODO: Choose different color scales
+        positive_colors = px.colors.qualitative.Prism  # TODO: Choose different scales, make it a settable constant?
         negative_colors = px.colors.qualitative.Safe
 
         positive_fig = px.sunburst(
