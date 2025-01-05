@@ -21,6 +21,7 @@ class TransactionAdmin(admin.ModelAdmin):
     list_display = (
         "date_of_transaction",
         "amount",
+        "bank_account",
         "currency",
         "subcategory",
         "want_need_investment",
