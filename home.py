@@ -54,7 +54,7 @@ def main():
 
     # Get combined filter params
     filter_params = filter_manager.get_combined_params()
-    st.write("Combined Filter Parameters:") # TODO: Remove - debug
+    st.write("Combined Filter Parameters:")  # TODO: Remove - debug
     st.json(filter_params, expanded=False)
 
     transactions = Transaction.get_transactions_from_db(filter_params)

@@ -59,7 +59,6 @@ class OverviewStatsWidget:
 
     def place_widget(self):
         if self.transactions:
-            st.write(self.transactions)
             st.markdown(f'## Available')
             st.markdown(f'## :orange[TODO]')  # TODO: Add expenses
 
