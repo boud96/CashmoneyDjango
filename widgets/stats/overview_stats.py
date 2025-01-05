@@ -19,7 +19,6 @@ class OverviewStatsWidget:
         if len(transactions) > 0:
             self._calculate_stats()
 
-
     def _calculate_stats(self):
         sum_of_expenses = self.transactions.filter(amount__lt=0).aggregate(Sum("amount"))["amount__sum"] or 0
         sum_of_incomes = self.transactions.filter(amount__gt=0).aggregate(Sum("amount"))["amount__sum"] or 0
@@ -59,19 +58,21 @@ class OverviewStatsWidget:
         }
 
     def place_widget(self):
-        st.markdown(f'## Available')
-        st.markdown(f'## :orange[TODO]')  # TODO: Add expenses
+        if self.transactions:
+            st.write(self.transactions)
+            st.markdown(f'## Available')
+            st.markdown(f'## :orange[TODO]')  # TODO: Add expenses
 
-        col_1, col_2, col_3 = st.columns(3)
-        with col_1:
-            st.markdown(f'## Expenses')
-            st.markdown(f'## :red[{self.stats.get(SUM_EXPENSES)}]')
-            st.metric(label="Monthly averages:", value="", delta=self.stats.get(MONTHLY_AVG_EXPENSES))
-        with col_2:
-            st.markdown(f'## Sum of incomes')
-            st.markdown(f'## :green[{self.stats.get(SUM_INCOMES)}]')
-            st.metric(label="Sum of incomes", value="", delta=self.stats.get(MONTHLY_AVG_INCOMES), label_visibility="hidden")
-        with col_3:
-            st.markdown(f'## Net')
-            st.markdown(f'## :blue[{self.stats.get(NET_SUM)}]')
-            st.metric(label="Net value", value="", delta=self.stats.get(MONTHLY_AVG_NET), label_visibility="hidden")
+            col_1, col_2, col_3 = st.columns(3)
+            with col_1:
+                st.markdown(f'## Expenses')
+                st.markdown(f'## :red[{self.stats.get(SUM_EXPENSES)}]')
+                st.metric(label="Monthly averages:", value="", delta=self.stats.get(MONTHLY_AVG_EXPENSES))
+            with col_2:
+                st.markdown(f'## Sum of incomes')
+                st.markdown(f'## :green[{self.stats.get(SUM_INCOMES)}]')
+                st.metric(label="Sum of incomes", value="", delta=self.stats.get(MONTHLY_AVG_INCOMES), label_visibility="hidden")
+            with col_3:
+                st.markdown(f'## Net')
+                st.markdown(f'## :blue[{self.stats.get(NET_SUM)}]')
+                st.metric(label="Net value", value="", delta=self.stats.get(MONTHLY_AVG_NET), label_visibility="hidden")

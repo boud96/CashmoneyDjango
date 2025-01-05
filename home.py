@@ -58,6 +58,9 @@ def main():
     st.json(filter_params, expanded=False)
 
     transactions = Transaction.get_transactions_from_db(filter_params)
+    if not transactions:
+        st.warning("No transactions found.")
+        return
 
     # Overview Stats
     overview_stats = OverviewStatsWidget(transactions)

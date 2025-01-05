@@ -53,4 +53,5 @@ class DataFrameWidget:
 
     def place_widget(self):
         """Call the method to create and render the styled dataframe."""
-        self.create_styled_dataframe()
+        if not self.df.empty:
+            self.create_styled_dataframe()

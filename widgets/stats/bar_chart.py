@@ -35,9 +35,7 @@ class BarChartWidget:
         return grouped.set_index("month_year")
 
     def place_widget(self):
-        if self.df.empty:
-            st.write("No data available to display.")
-        else:
+        if not self.df.empty:
             st.bar_chart(
                 self.df,
                 color=["#000000", "#ffabab", "#3dd56d"],

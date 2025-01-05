@@ -46,13 +46,14 @@ class TransactionSunburstWidget:
         return positive_fig, negative_fig
 
     def place_widget(self):
-        self.preprocess_data()
-        positive_fig, negative_fig = self.create_sunburst_charts()
+        if not self.transactions_df.empty:
+            self.preprocess_data()
+            positive_fig, negative_fig = self.create_sunburst_charts()
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.plotly_chart(positive_fig)
-        with col2:
-            st.plotly_chart(negative_fig)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.plotly_chart(positive_fig)
+            with col2:
+                st.plotly_chart(negative_fig)
 
 
