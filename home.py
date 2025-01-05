@@ -25,7 +25,6 @@ from widgets.stats.overview_stats import OverviewStatsWidget
 
 def main():
     st.set_page_config(page_title="Cashmoney", layout="wide", page_icon="")
-    st.title("Custom dashboard")
 
     # Initialize the FilterManager
     filter_manager = FilterManager()
@@ -55,13 +54,13 @@ def main():
 
     # Get combined filter params
     filter_params = filter_manager.get_combined_params()
-    st.write("Combined Filter Parameters:", filter_params)
+    st.write("Combined Filter Parameters:") # TODO: Remove - debug
+    st.json(filter_params, expanded=False)
 
     transactions = Transaction.get_transactions_from_db(filter_params)
 
     # Overview Stats
     overview_stats = OverviewStatsWidget(transactions)
-    st.write(overview_stats.stats)
     overview_stats.place_widget()
 
     # Bar Chart
