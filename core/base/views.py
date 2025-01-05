@@ -199,14 +199,23 @@ def import_transactions(request):
                 }
 
                 transaction = Transaction(**transaction_data)
-                duplicate_exists = Transaction.objects.filter(
-                    original_id=transaction.original_id,
-                    date_of_transaction=transaction.date_of_transaction,
-                    date_of_submission=transaction.date_of_submission,
-                    amount=transaction.amount,
-                    currency=transaction.currency,
-                    bank_account=transaction.bank_account,
-                ).exists()
+
+                if original_id:
+                    duplicate_exists = Transaction.objects.filter(
+                        original_id=transaction.original_id,
+                        date_of_transaction=transaction.date_of_transaction,
+                        amount=transaction.amount,
+                    ).exists()
+                else:
+                    duplicate_exists = Transaction.objects.filter(
+                        date_of_transaction=transaction.date_of_transaction,
+                        amount=transaction.amount,
+                        counterparty_account_number=transaction.counterparty_account_number,
+                        currency=transaction.currency,
+                        variable_symbol=transaction.variable_symbol,
+                        specific_symbol=transaction.specific_symbol,
+                        constant_symbol=transaction.constant_symbol,
+                    ).exists()
 
                 if duplicate_exists:
                     duplicates.append(str(transaction))
