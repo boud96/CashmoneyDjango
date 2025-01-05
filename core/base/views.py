@@ -96,8 +96,8 @@ def get_counterparty_account_number(row: pd.Series, csv_map: dict) -> str:
     acc_num = csv_map.get("counterparty_account_number")
     bank_code = csv_map.get("counterparty_bank_code")
 
-    acc_num_value = row.get(acc_num).strip().replace(" ", "")
-    bank_code_value = row.get(bank_code).strip().replace(" ", "")
+    acc_num_value = row.get(acc_num).strip().replace(" ", "") if acc_num else None
+    bank_code_value = row.get(bank_code).strip().replace(" ", "") if bank_code else None
 
     if not acc_num_value and not bank_code_value:
         return ""
