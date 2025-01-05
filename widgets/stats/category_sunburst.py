@@ -29,7 +29,7 @@ class TransactionSunburstWidget:
             positive_df_grouped,
             path=['category_name', 'subcategory_name'],
             values='amount',
-            title="Positive Transactions Breakdown",
+            title="Incomes by Category",
             color='category_name',
             color_discrete_sequence=positive_colors,
         )
@@ -38,7 +38,7 @@ class TransactionSunburstWidget:
             negative_df_grouped,
             path=['category_name', 'subcategory_name'],
             values='amount',
-            title="Negative Transactions Breakdown",
+            title="Expenses by Category",
             color='category_name',
             color_discrete_sequence=negative_colors,
         )
