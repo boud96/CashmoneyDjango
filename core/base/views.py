@@ -173,7 +173,7 @@ def import_transactions(request):
                 else:
                     is_uncategorized = True
 
-                ignore = False
+                ignore = matching_keywords[0].ignore if matching_keywords else False
                 if BankAccount.objects.filter(account_number=counterparty_account_number).exists():
                     ignore = True
 

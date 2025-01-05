@@ -63,7 +63,8 @@ class KeywordAdmin(admin.ModelAdmin):
     list_display = (
         "value",
         "subcategory",
-        "want_need_investment"
+        "want_need_investment",
+        "ignore"
     )
 
 
