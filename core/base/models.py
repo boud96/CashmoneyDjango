@@ -5,6 +5,8 @@ from django.db import models
 from django.db.models import Q, QuerySet, F
 
 
+# TODO: Add plural names
+
 class AbstractBaseModel(models.Model):
     """
     This abstract class contains the common fields for all models.
