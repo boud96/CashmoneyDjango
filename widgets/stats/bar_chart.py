@@ -25,12 +25,23 @@ class BarChartWidget:
             Sum_Negative=lambda x: x[x < 0].sum(),
         ).reset_index()
 
+        all_months = pd.date_range(
+            start=data["month_year"].min().start_time,
+            end=data["month_year"].max().end_time,
+            freq='M').to_period('M')
+
+        full_range = pd.DataFrame(all_months, columns=["month_year"])
+        grouped = full_range.merge(grouped, on="month_year", how="left")
+
+        grouped["Sum_Positive"] = grouped["Sum_Positive"].fillna(0)
+        grouped["Sum_Negative"] = grouped["Sum_Negative"].fillna(0)
         grouped["Difference"] = grouped["Sum_Positive"] + grouped["Sum_Negative"]
-        grouped["month_year"] = grouped["month_year"].astype(str)
 
         grouped[["Sum_Positive", "Sum_Negative", "Difference"]] = grouped[
             ["Sum_Positive", "Sum_Negative", "Difference"]
         ].astype(float)
+
+        grouped["month_year"] = grouped["month_year"].astype(str)
 
         return grouped.set_index("month_year")
 
