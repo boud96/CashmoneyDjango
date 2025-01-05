@@ -165,6 +165,9 @@ class Category(AbstractBaseModel):
     name = models.CharField(max_length=128, null=False, blank=False)
     description = models.TextField(null=True, blank=True)
 
+    class Meta:
+        ordering = ['name']
+
     def __str__(self):
         return self.name
 
@@ -173,6 +176,9 @@ class Subcategory(AbstractBaseModel):
     name = models.CharField(max_length=128, null=False, blank=False)
     description = models.TextField(null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ['category__name', 'name']
 
     def __str__(self):
         return f"{self.name} ({self.category})"
@@ -195,7 +201,7 @@ class TransactionTag(AbstractBaseModel):
 
 
 class Keyword(AbstractBaseModel):
-    value = models.CharField(max_length=128, null=False, blank=False)
+    value = models.CharField(max_length=128, null=False, blank=False, unique=True)
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE)
     want_need_investment = models.CharField(max_length=128, choices=Transaction.WNI_CHOICES, null=True, blank=True)
 
