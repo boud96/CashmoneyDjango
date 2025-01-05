@@ -70,5 +70,4 @@ class KeywordAdmin(admin.ModelAdmin):
 class CSVMappingAdmin(admin.ModelAdmin):
     list_display = (
         "name",
-        "mapping_json",
     )

@@ -203,9 +203,37 @@ class Keyword(AbstractBaseModel):
         return f"{self.value} - {self.subcategory}"
 
 
+def get_default_bank_account():
+    return BankAccount.objects.first().id  # Or another way to get a valid instance
+
 class CSVMapping(AbstractBaseModel):
     name = models.CharField(max_length=128, null=False, blank=False)
-    mapping_json = models.JSONField(null=False, blank=False)
+    amount = models.CharField(max_length=128, null=True, blank=True)
+    header = models.IntegerField(null=True, blank=True, default=0)
+    my_note = models.CharField(max_length=128, null=True, blank=True)
+    currency = models.CharField(max_length=128, null=True, blank=True)  # TODO: Related field?
+    encoding = models.CharField(max_length=128, null=False, blank=False, default="utf-8")
+    delimiter = models.CharField(max_length=5, null=False, blank=False, default=",")
+    other_note = models.TextField(
+        null=True, blank=True,
+        help_text="Store a list of notes as a comma-separated string."
+    )
+    original_id = models.CharField(max_length=128, null=True, blank=True)
+    constant_symbol = models.CharField(max_length=128, null=True, blank=True)
+    specific_symbol = models.CharField(max_length=128, null=True, blank=True)
+    variable_symbol = models.CharField(max_length=128, null=True, blank=True)
+    transaction_type = models.CharField(max_length=128, null=True, blank=True)
+    counterparty_name = models.CharField(max_length=128, null=True, blank=True)
+    counterparty_note = models.CharField(max_length=128, null=True, blank=True)
+    date_of_submission_value = models.CharField(max_length=128, null=True, blank=True)
+    date_of_submission_format = models.CharField(max_length=128, null=True, blank=True)
+    date_of_transaction_value = models.CharField(max_length=128, null=False, blank=False,)
+    date_of_transaction_format = models.CharField(max_length=128, null=False, blank=False, default="%d.%m.%Y")
+    counterparty_account_number = models.CharField(
+        max_length=128, null=True, blank=True,
+        help_text="Can be account number with or without bank code."
+    )
+    counterparty_bank_code = models.CharField(max_length=128, null=True, blank=True)
 
     @classmethod
     def get_csv_mappings(cls) -> list:
@@ -213,3 +241,15 @@ class CSVMapping(AbstractBaseModel):
 
     def __str__(self):
         return self.name
+
+    def set_other_note_list(self, notes: list):
+        """Set the other_note field as a comma-separated string from a list."""
+        if not isinstance(notes, list):
+            raise ValueError("The 'notes' argument must be a list.")
+        self.other_note = ",".join(notes)
+
+    def get_other_note_list(self) -> list:
+        """Retrieve the other_note field as a list."""
+        if not self.other_note:
+            return []
+        return [note.strip() for note in self.other_note.split(",")]

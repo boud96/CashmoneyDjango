@@ -11,43 +11,37 @@ from .models import CSVMapping, Transaction, BankAccount
 from ..utils import get_matching_keyword_objs
 
 
-def get_original_id(row: pd.Series, csv_map: dict) -> str:
-    return row.get(csv_map.get("original_id"))
+def get_original_id(row: pd.Series, csv_map: CSVMapping) -> str:
+    return row.get(csv_map.original_id)
 
 
-def get_date_of_submission(row: pd.Series, csv_map: dict) -> Optional[datetime]:
-    dof_key = csv_map.get("date_of_submission").get("value")
-    dof_format = csv_map.get("date_of_submission").get("format")
-
-    dof_value = row.get(dof_key)
-    if dof_value:
-        return datetime.strptime(dof_value, dof_format)
+def get_date_of_submission(row: pd.Series, csv_map: CSVMapping) -> Optional[datetime]:
+    dos_row_value = row.get(csv_map.date_of_submission_value)
+    if dos_row_value:
+        return datetime.strptime(dos_row_value, csv_map.date_of_submission_format)
     return None
 
 
-def get_date_of_transaction(row: pd.Series, csv_map: dict) -> datetime:
+def get_date_of_transaction(row: pd.Series, csv_map: CSVMapping) -> datetime:
     """
     Get the date of transaction from the row.
     The date of transaction is required, so if it's not found, raise an error.
     """
-    dot_key = csv_map.get("date_of_transaction").get("value")
-    dot_format = csv_map.get("date_of_transaction").get("format")
-
-    dot_value = row.get(dot_key)
-    if not dot_value:
-        raise ValueError(f"Value for {dot_key} not found")
-    return datetime.strptime(dot_value, dot_format)
+    dot_row_value = row.get(csv_map.date_of_transaction_value)
+    if not dot_row_value:
+        raise ValueError(f"Value for {dot_row_value} not found")
+    return datetime.strptime(dot_row_value, csv_map.date_of_transaction_format)
 
 
-def get_amount(row: pd.Series, csv_map: dict) -> float:
-    amount = row.get(csv_map.get("amount"))
+def get_amount(row: pd.Series, csv_map: CSVMapping) -> float:
+    amount = row.get(csv_map.amount)
     if isinstance(amount, str):
         amount = amount.replace(",", ".").replace(" ", "")
     return float(amount)
 
 
-def get_currency(row: pd.Series, csv_map: dict) -> str:
-    currency = row.get(csv_map.get("currency"))
+def get_currency(row: pd.Series, csv_map: CSVMapping) -> str:
+    currency = row.get(csv_map.currency)
     if not currency:
         currency = "CZK"  # TODO: Model for currency and convert to default currency?
     return currency
@@ -57,44 +51,44 @@ def get_bank_account(bank_account_id: str) -> BankAccount:
     return BankAccount.objects.get(id=bank_account_id)
 
 
-def get_my_note(row: pd.Series, csv_map: dict) -> str:
-    return row.get(csv_map.get("my_note"))
+def get_my_note(row: pd.Series, csv_map: CSVMapping) -> str:
+    return row.get(csv_map.my_note)
 
 
-def get_other_note(row: pd.Series, csv_map: dict) -> str:
-    other_note_columns = csv_map.get("other_note", [])  # Expecting a list of column names
+def get_other_note(row: pd.Series, csv_map: CSVMapping) -> str:
+    other_note_columns = csv_map.get_other_note_list()
     other_note = " ".join(str(row.get(col, "")) for col in other_note_columns).strip()
     return other_note
 
 
-def get_counterparty_note(row: pd.Series, csv_map: dict) -> str:
-    return row.get(csv_map.get("counterparty_note"))
+def get_counterparty_note(row: pd.Series, csv_map: CSVMapping) -> str:
+    return row.get(csv_map.counterparty_note)
 
 
-def get_constant_symbol(row: pd.Series, csv_map: dict) -> str:
-    return row.get(csv_map.get("constant_symbol"))
+def get_constant_symbol(row: pd.Series, csv_map: CSVMapping) -> str:
+    return row.get(csv_map.constant_symbol)
 
 
-def get_specific_symbol(row: pd.Series, csv_map: dict) -> str:
-    return row.get(csv_map.get("specific_symbol"))
+def get_specific_symbol(row: pd.Series, csv_map: CSVMapping) -> str:
+    return row.get(csv_map.specific_symbol)
 
 
-def get_variable_symbol(row: pd.Series, csv_map: dict) -> str:
-    return row.get(csv_map.get("variable_symbol"))
+def get_variable_symbol(row: pd.Series, csv_map: CSVMapping) -> str:
+    return row.get(csv_map.variable_symbol)
 
 
-def get_transaction_type(row: pd.Series, csv_map: dict) -> str:
-    return row.get(csv_map.get("transaction_type"))
+def get_transaction_type(row: pd.Series, csv_map: CSVMapping) -> str:
+    return row.get(csv_map.transaction_type)
 
 
-def get_counterparty_account_number(row: pd.Series, csv_map: dict) -> str:
+def get_counterparty_account_number(row: pd.Series, csv_map: CSVMapping) -> str:
     """
     Get the counterparty account number from the row.
     If the bank code is provided, return the bank code and account number together.
     Some csv files have the bank code and account number in one column, some in separate columns.
     """
-    acc_num = csv_map.get("counterparty_account_number")
-    bank_code = csv_map.get("counterparty_bank_code")
+    acc_num = csv_map.counterparty_account_number
+    bank_code = csv_map.counterparty_bank_code
 
     acc_num_value = row.get(acc_num).strip().replace(" ", "") if acc_num else None
     bank_code_value = row.get(bank_code).strip().replace(" ", "") if bank_code else None
@@ -109,33 +103,27 @@ def get_counterparty_account_number(row: pd.Series, csv_map: dict) -> str:
     return f"{acc_num_value}/{bank_code_value}"
 
 
-def get_counterparty_name(row, csv_map):
-    return row.get(csv_map.get("counterparty_name"))
+def get_counterparty_name(row, csv_map: CSVMapping) -> str:
+    return row.get(csv_map.counterparty_name)
 
 
 @csrf_exempt  # TODO: Make this view secure and stuff
 def import_transactions(request):
     if request.method == "POST":
         try:
-            csv_mapping = CSVMapping.objects.get(id=request.POST.get("id"))
+            csv_map = CSVMapping.objects.get(id=request.POST.get("id"))
             bank_account_id = request.POST.get("bank_account_id")
             csv_file = request.FILES.get("csv_file")
 
-            csv_map = csv_mapping.mapping_json
-
-            encoding = csv_map.get("encoding")
-            header = csv_map.get("header")
-            delimiter = csv_map.get("delimiter")
-
             # Trailing delimiters handle - without it, it sometimes throws an error
-            raw_data = csv_file.read().decode(encoding)
-            cleaned_data = "\n".join(line.rstrip(delimiter) for line in raw_data.splitlines())
+            raw_data = csv_file.read().decode(csv_map.encoding)
+            cleaned_data = "\n".join(line.rstrip(csv_map.delimiter) for line in raw_data.splitlines())
 
             df = pd.read_csv(
                 io.StringIO(cleaned_data),
-                encoding=encoding,
-                header=header,
-                delimiter=delimiter,
+                encoding=csv_map.encoding,
+                header=csv_map.header,
+                delimiter=csv_map.delimiter,
                 on_bad_lines="warn",
                 dtype=str
             ).fillna('')
