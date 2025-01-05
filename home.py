@@ -12,7 +12,8 @@ from widgets.filters.ignored import ShowIgnoredFilter
 from widgets.filters.manager import FilterManager
 from widgets.stats.bar_chart import BarChartWidget
 from widgets.stats.dataframe import DataFrameWidget
-from widgets.stats.sun_burst import TransactionSunburstWidget
+from widgets.stats.category_sunburst import TransactionSunburstWidget
+from widgets.stats.wni_sunburst import TransactionWNIWidget
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
 import django
@@ -77,6 +78,10 @@ def main():
     transactions_df = Transaction.get_transactions_as_dataframe(filter_params)  # TODO: This won't be needed, make SunburstWidget use transactions directly
     transaction_sunburst = TransactionSunburstWidget(transactions_df)
     transaction_sunburst.place_widget()
+
+
+    widget = TransactionWNIWidget(transactions_df)
+    widget.place_widget()
 
 
 if __name__ == "__main__":
