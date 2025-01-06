@@ -18,6 +18,16 @@ class TransactionTagInline(admin.TabularInline):
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
+    search_fields = ["original_id", "date_of_transaction", "bank_account"]
+    list_filter = [
+        "bank_account",
+        "subcategory__category",
+        "subcategory",
+        "want_need_investment",
+        "ignore",
+        "currency"
+    ]
+
     list_display = (
         "date_of_transaction",
         "amount",
@@ -32,6 +42,7 @@ class TransactionAdmin(admin.ModelAdmin):
         "currency",
         "get_tags"
     )
+
     inlines = [TransactionTagInline]
 
 
