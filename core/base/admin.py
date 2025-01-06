@@ -22,13 +22,14 @@ class TransactionAdmin(admin.ModelAdmin):
         "date_of_transaction",
         "amount",
         "bank_account",
-        "currency",
         "subcategory",
         "want_need_investment",
         "counterparty_name",
         "counterparty_note",
         "my_note",
         "other_note",
+        "ignore",
+        "currency",
         "get_tags"
     )
     inlines = [TransactionTagInline]
