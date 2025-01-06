@@ -15,6 +15,8 @@ class BarChartWidget:
             return pd.DataFrame()
 
         data = pd.DataFrame.from_records(self.transactions.values("date_of_transaction", "amount"))
+        data["amount"] = data["amount"].astype(float)
+
         data["date_of_transaction"] = pd.to_datetime(data["date_of_transaction"])
         data["month_year"] = data["date_of_transaction"].dt.to_period("M")
 
@@ -28,7 +30,7 @@ class BarChartWidget:
         all_months = pd.date_range(
             start=data["month_year"].min().start_time,
             end=data["month_year"].max().end_time,
-            freq='M').to_period('M')
+            freq="M").to_period("M")
 
         full_range = pd.DataFrame(all_months, columns=["month_year"])
         grouped = full_range.merge(grouped, on="month_year", how="left")

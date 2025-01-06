@@ -60,7 +60,7 @@ def main():
 
     transactions = Transaction.get_transactions_from_db(filter_params)
     if not transactions:
-        st.warning("No transactions found.")
+        st.info("No transactions found.")
         return
 
     # Overview Stats
