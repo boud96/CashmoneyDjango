@@ -257,3 +257,101 @@ def import_transactions(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+@csrf_exempt  # TODO: Secure this view appropriately
+def recategorize_transactions(request):
+    if request.method == "POST":
+        try:
+            recategorize_assigned = request.POST.get("recategorize_assigned", "false").lower() == "true"
+
+            if recategorize_assigned:
+                transactions = Transaction.objects.all()
+            else:
+                transactions = Transaction.objects.filter(subcategory__isnull=True)
+
+            updated_transactions = []
+            category_overlap = []
+            uncategorized = []
+
+            for transaction in transactions:
+
+                # TODO: DEGBUG REMOVE
+                if transaction.original_id == "SGW7003790399944":
+                    print("DEBUG")
+
+                lookup_str = f"{transaction.my_note}{transaction.other_note}{transaction.counterparty_note}{transaction.counterparty_name}"
+                matching_keywords = get_matching_keyword_objs(lookup_str)
+
+                subcategory = None
+                want_need_investment = None
+
+                is_category_overlap = False
+                if len(matching_keywords) == 1:
+                    subcategory = matching_keywords[0].subcategory
+                    want_need_investment = matching_keywords[0].want_need_investment
+                    updated_transactions.append(transaction)
+
+                elif len(matching_keywords) > 1:  # TODO: Implement this to the import_transactions view
+                    first_subcategory = matching_keywords[0].subcategory
+                    first_want_need_investment = matching_keywords[0].want_need_investment
+                    all_same = True
+                    for keyword in matching_keywords:
+                        if keyword.subcategory != first_subcategory or keyword.want_need_investment != first_want_need_investment:
+                            all_same = False
+                            break
+                    if all_same:
+                        subcategory = first_subcategory
+                        want_need_investment = first_want_need_investment
+                    else:
+                        is_category_overlap = True
+
+                else:
+                    uncategorized.append(str(transaction))
+                    continue
+
+                if is_category_overlap:
+                    category_overlap.append(str(transaction))
+                    continue
+
+                # TODO: implement the ignore logic
+
+                transaction.subcategory = subcategory
+                transaction.want_need_investment = want_need_investment
+                updated_transactions.append(transaction)
+
+            Transaction.objects.bulk_update(
+                updated_transactions,
+                fields=["subcategory", "want_need_investment"]
+            )
+
+            return JsonResponse(
+                {
+                    "loaded": {
+                        "message": f"Loaded {len(transactions)} transactions",
+                        "transactions": [str(t) for t in updated_transactions],
+                    },
+                    "updated": {
+                        "message": f"Updated {len(updated_transactions)} transactions",
+                        "transactions": [str(t) for t in updated_transactions],
+                    },
+                    "skipped": {
+                        "message": f"Skipped {len(category_overlap) + len(uncategorized)} transactions",
+                        "category_overlap": {
+                            "message": f"Overlapping categories for {len(category_overlap)} transactions",
+                            "transactions": category_overlap
+                        },
+                        "uncategorized": {
+                            "message": f"Category not found for {len(uncategorized)} transactions",
+                            "transactions": uncategorized
+                        }
+                    },
+                },
+                status=200,
+            )
+
+        except Exception as e:
+            print(traceback.format_exc())  # TODO: DEBUG remove
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
