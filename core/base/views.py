@@ -275,11 +275,6 @@ def recategorize_transactions(request):
             uncategorized = []
 
             for transaction in transactions:
-
-                # TODO: DEGBUG REMOVE
-                if transaction.original_id == "SGW7003790399944":
-                    print("DEBUG")
-
                 lookup_str = f"{transaction.my_note}{transaction.other_note}{transaction.counterparty_note}{transaction.counterparty_name}"
                 matching_keywords = get_matching_keyword_objs(lookup_str)
 
@@ -314,10 +309,15 @@ def recategorize_transactions(request):
                     category_overlap.append(str(transaction))
                     continue
 
-                # TODO: implement the ignore logic
+                # TODO: check if behavior is correct
+                ignore = matching_keywords[0].ignore if matching_keywords else False
+                if BankAccount.objects.filter(account_number=transaction.counterparty_account_number).exists():
+                    ignore = True
 
                 transaction.subcategory = subcategory
                 transaction.want_need_investment = want_need_investment
+                transaction.ignore = ignore
+
                 updated_transactions.append(transaction)
 
             Transaction.objects.bulk_update(
