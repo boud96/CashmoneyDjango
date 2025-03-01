@@ -6,6 +6,7 @@ import plotly.express as px
 import streamlit as st
 
 from widgets.filters.bank_account import BankAccountFilter
+from widgets.filters.by_owners import RecalculateAmountsByOwnersFilter
 from widgets.filters.category import CategoryFilter
 from widgets.filters.date import DateFilter
 from widgets.filters.ignored import ShowIgnoredFilter
@@ -45,6 +46,10 @@ def main():
     # Add ShowIgnoredFilter
     show_ignored_filter = ShowIgnoredFilter()
     filter_manager.add_filter("show_ignored", show_ignored_filter)
+
+    # Add RecalculateAmountsByOwnersFilter
+    recalculate_by_owners_filter = RecalculateAmountsByOwnersFilter()  # TODO: Work in progress?
+    filter_manager.add_filter("recalculate_by_owners", recalculate_by_owners_filter)
 
     # Add BankAccountFilter  # TODO: Remove None?
     bank_account_filter = BankAccountFilter(BankAccount, label="Select Bank Accounts")
