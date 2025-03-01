@@ -18,7 +18,7 @@ class TransactionTagInline(admin.TabularInline):
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    search_fields = ["original_id", "date_of_transaction", "bank_account"]
+    search_fields = ["original_id", "date_of_transaction", "bank_account__account_name", "amount", "counterparty_account_number"]
     list_filter = [
         "bank_account",
         "subcategory__category",
