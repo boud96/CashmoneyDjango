@@ -48,7 +48,7 @@ def main():
     filter_manager.add_filter("show_ignored", show_ignored_filter)
 
     # Add RecalculateAmountsByOwnersFilter
-    recalculate_by_owners_filter = RecalculateAmountsByOwnersFilter()  # TODO: Work in progress?
+    recalculate_by_owners_filter = RecalculateAmountsByOwnersFilter()
     filter_manager.add_filter("recalculate_by_owners", recalculate_by_owners_filter)
 
     # Add BankAccountFilter  # TODO: Remove None?
