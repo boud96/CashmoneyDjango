@@ -2,7 +2,7 @@ import uuid
 
 import pandas as pd
 from django.db import models
-from django.db.models import Q, QuerySet, F
+from django.db.models import Q, QuerySet, F, ExpressionWrapper, DecimalField
 
 
 # TODO: Add plural names
@@ -57,6 +57,7 @@ class Transaction(AbstractBaseModel):
             "category",
             "subcategory",
             "show_ignored",
+            "recalculate_by_owners",
             "bank_account"
         ]
 
@@ -65,6 +66,7 @@ class Transaction(AbstractBaseModel):
         categories = filter_params.get("category")
         subcategories = filter_params.get("subcategory")
         show_ignored = filter_params.get("show_ignored", False)
+        recalculate_by_owners = filter_params.get("recalculate_by_owners", False)
         bank_accounts = filter_params.get("bank_account")
 
         extra_keys = [key for key in filter_params if key not in expected_filter_keys]
@@ -101,23 +103,37 @@ class Transaction(AbstractBaseModel):
                 query &= Q(bank_account__in=bank_accounts)
 
         field_names = cls.get_field_names()
-        related_fields = [  # TODO: Remove or something, not needed?
+        related_fields = [
             "subcategory__name",
             "subcategory__category__name",
-            "bank_account__account_name"
+            "bank_account__account_name",
+            "bank_account__owners"
         ]
 
         annotation = {
             "subcategory_name": F("subcategory__name"),
             "category_name": F("subcategory__category__name"),
-            "account_name": F("bank_account__account_name")
+            "account_name": F("bank_account__account_name"),
+            "owners": F("bank_account__owners")
         }
 
-        return (
+        if recalculate_by_owners:
+            annotation["recalculated_amount"] = ExpressionWrapper(
+                F("amount") / F("bank_account__owners"),
+                output_field=DecimalField(max_digits=12, decimal_places=2)
+            )
+
+        transactions = (
             cls.objects.filter(query)
             .annotate(**annotation)
-            .values(*field_names, *related_fields, "subcategory_name", "category_name", "account_name")
+            .values(*field_names, *related_fields, "subcategory_name", "category_name", "account_name", "amount")
         )
+
+        if recalculate_by_owners:
+            for transaction in transactions:
+                transaction["amount"] = transaction["amount"] / transaction["bank_account__owners"]
+
+        return transactions
 
     @classmethod
     def get_transactions_as_dataframe(cls, filter_params: dict) -> pd.DataFrame:
