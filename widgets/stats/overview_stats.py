@@ -1,5 +1,5 @@
+from widgets.stats.base_widget import BaseWidget
 import streamlit as st
-
 from django.db.models import QuerySet, Sum, Avg
 from django.db.models.functions import TruncMonth
 
