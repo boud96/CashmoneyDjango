@@ -11,17 +11,18 @@ MONTHLY_AVG_EXPENSES = "monthly_avg_expenses"
 MONTHLY_AVG_NET = "monthly_avg_net"
 
 
-class OverviewStatsWidget:
+#TODO: Fix - Does not include months where no transactions were made
+class OverviewStatsWidget(BaseWidget):
     def __init__(self, transactions: QuerySet):
-        self.transactions = transactions
+        super().__init__(transactions)
 
         self.stats = {}
         if len(transactions) > 0:
             self._calculate_stats()
 
     def _calculate_stats(self):
-        sum_of_expenses = self.transactions.filter(amount__lt=0).aggregate(Sum("amount"))["amount__sum"] or 0
-        sum_of_incomes = self.transactions.filter(amount__gt=0).aggregate(Sum("amount"))["amount__sum"] or 0
+        sum_of_expenses = self.transactions.filter(amount__lt=0).aggregate(Sum("effective_amount"))["effective_amount__sum"] or 0
+        sum_of_incomes = self.transactions.filter(amount__gt=0).aggregate(Sum("effective_amount"))["effective_amount__sum"] or 0
         net_sum = sum_of_incomes + sum_of_expenses
 
         sum_of_expenses_str = f"{sum_of_expenses:,.0f}".replace(",", " ")
@@ -31,14 +32,14 @@ class OverviewStatsWidget:
         monthly_avg_expenses = self.transactions.filter(amount__lt=0).annotate(
             month=TruncMonth('date_of_transaction')
         ).values('month').annotate(
-            monthly_sum=Sum('amount')
+            monthly_sum=Sum("effective_amount")
         ).aggregate(
             avg_monthly_expenses=Avg('monthly_sum')
         )['avg_monthly_expenses'] or 0
         monthly_avg_incomes = self.transactions.filter(amount__gt=0).annotate(
             month=TruncMonth('date_of_transaction')
         ).values('month').annotate(
-            monthly_sum=Sum('amount')
+            monthly_sum=Sum("effective_amount")
         ).aggregate(
             avg_monthly_incomes=Avg('monthly_sum')
         )['avg_monthly_incomes'] or 0

@@ -80,12 +80,10 @@ def main():
     transactions_dataframe = DataFrameWidget(transactions)
     transactions_dataframe.place_widget()
 
-    transactions_df = Transaction.get_transactions_as_dataframe(filter_params)  # TODO: This won't be needed, make SunburstWidget use transactions directly
-    transaction_sunburst = TransactionSunburstWidget(transactions_df)
+    transaction_sunburst = TransactionSunburstWidget(transactions)
     transaction_sunburst.place_widget()
 
-
-    widget = TransactionWNIWidget(transactions_df)
+    widget = TransactionWNIWidget(transactions)
     widget.place_widget()
 
 

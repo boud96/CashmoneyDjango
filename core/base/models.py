@@ -110,28 +110,29 @@ class Transaction(AbstractBaseModel):
             "bank_account__owners"
         ]
 
+        effective_amount = F("amount")
+        if recalculate_by_owners:
+            effective_amount = ExpressionWrapper(
+                F("amount") / F("bank_account__owners"),
+                output_field=DecimalField(max_digits=2, decimal_places=2)
+            )
+
         annotation = {
             "subcategory_name": F("subcategory__name"),
             "category_name": F("subcategory__category__name"),
             "account_name": F("bank_account__account_name"),
-            "owners": F("bank_account__owners")
+            "owners": F("bank_account__owners"),
+            "effective_amount": effective_amount
         }
-
-        if recalculate_by_owners:
-            annotation["recalculated_amount"] = ExpressionWrapper(
-                F("amount") / F("bank_account__owners"),
-                output_field=DecimalField(max_digits=12, decimal_places=2)
-            )
 
         transactions = (
             cls.objects.filter(query)
             .annotate(**annotation)
-            .values(*field_names, *related_fields, "subcategory_name", "category_name", "account_name", "amount")
+            .values(
+                *field_names, *related_fields, "subcategory_name", "category_name",
+                    "account_name", "amount", "effective_amount"
+            )
         )
-
-        if recalculate_by_owners:
-            for transaction in transactions:
-                transaction["amount"] = transaction["amount"] / transaction["bank_account__owners"]
 
         return transactions
 

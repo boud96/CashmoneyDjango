@@ -1,5 +1,4 @@
 from functools import cached_property
-
 import pandas as pd
 import streamlit as st
 import plotly.express as px
@@ -44,8 +43,9 @@ class DataFrameWidget:
             .applymap(lambda val: self.style_names(val, "account_name"), subset=["account_name"])
             .applymap(lambda val: self.style_names(val, "category_name"), subset=["category_name"])
             .applymap(lambda val: self.style_names(val, "subcategory_name"), subset=["subcategory_name"])
-            .applymap(self.style_amount, subset=["amount"])
-        )  # TODO: Add more columns to style and only keep relevant ones
+            .applymap(self.style_amount, subset=["effective_amount"])
+        ).format({"effective_amount": "{:.2f}"})
+        # TODO: Add more columns to style and only keep relevant ones
 
         # Render styled dataframe
         st.dataframe(styled_df)
