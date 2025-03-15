@@ -1,8 +1,4 @@
 import os
-
-import numpy as np
-import pandas as pd
-import plotly.express as px
 import streamlit as st
 
 from widgets.filters.bank_account import BankAccountFilter
@@ -69,11 +65,11 @@ def main():
         return
 
     # Overview Stats
-    overview_stats = OverviewStatsWidget(transactions)
+    overview_stats = OverviewStatsWidget(transactions, filter_params)
     overview_stats.place_widget()
 
     # Bar Chart
-    bar_chart = BarChartWidget(transactions)
+    bar_chart = BarChartWidget(transactions, filter_params)
     bar_chart.place_widget()
 
     # DataFrame
