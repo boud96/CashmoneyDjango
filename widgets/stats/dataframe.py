@@ -8,50 +8,76 @@ from django.db.models import QuerySet
 class DataFrameWidget:
     def __init__(self, transactions: QuerySet):
         self.transactions = transactions
+        self._df = None  # Internal DataFrame storage
 
-    @cached_property
+    @property  # Changed from cached_property to regular property
     def df(self):
         """Convert the QuerySet to a DataFrame."""
-        if not self.transactions.exists():
-            return pd.DataFrame()
+        if self._df is None:
+            if not self.transactions.exists():
+                self._df = pd.DataFrame()
+            else:
+                self._df = pd.DataFrame.from_records(self.transactions.values())
+        return self._df
 
-        # Convert QuerySet to DataFrame, keeping all columns
-        data = pd.DataFrame.from_records(self.transactions.values())
-
-        return data
-
-    def name_colors(self, column_name):
+    def _name_colors(self, column_name):
         """Assign unique colors to each unique value in a specified column."""
         unique_values = self.df[column_name].unique()
         return {value: color for value, color in zip(unique_values, px.colors.qualitative.Prism)}
 
-    def style_names(self, val, column_name):
+    def _style_names(self, val, column_name):
         """Apply unique background colors to each value based on the column."""
-        colors = self.name_colors(column_name)
+        colors = self._name_colors(column_name)
         return f"background-color: {colors.get(val, '')}"
 
     @staticmethod
-    def style_amount(val):
+    def _style_amount(val):
         """Highlight positive scores in green and negative in red."""
         color = "green" if val > 0 else "red"
         return f"color: {color}"
 
-    def create_styled_dataframe(self):
+    def _create_styled_dataframe(self):
         """Style the transactions DataFrame and render it in Streamlit."""
         styled_df = (
             self.df.style
-            .applymap(lambda val: self.style_names(val, "account_name"), subset=["account_name"])
-            .applymap(lambda val: self.style_names(val, "category_name"), subset=["category_name"])
-            .applymap(lambda val: self.style_names(val, "subcategory_name"), subset=["subcategory_name"])
-            .applymap(self.style_amount, subset=["effective_amount"])
+            .applymap(lambda val: self._style_names(val, "account_name"), subset=["account_name"])
+            .applymap(lambda val: self._style_names(val, "category_name"), subset=["category_name"])
+            .applymap(lambda val: self._style_names(val, "subcategory_name"), subset=["subcategory_name"])
+            .applymap(self._style_amount, subset=["effective_amount"])
         ).format({"effective_amount": "{:.2f}"})
-        # TODO: Add more columns to style and only keep relevant ones
 
-        # Render styled dataframe
         st.dataframe(styled_df)
         return styled_df
 
     def place_widget(self):
         """Call the method to create and render the styled dataframe."""
         if not self.df.empty:
-            self.create_styled_dataframe()
+            self._order_columns()
+            self._create_styled_dataframe()
+
+    def _order_columns(self):
+        """Reorder the columns of the DataFrame."""
+        if self.df.empty:
+            return
+
+        columns = [
+            "date_of_transaction",
+            "account_name",
+            "category_name",
+            "subcategory_name",
+            "counterparty_name",
+            "counterparty_note",
+            "my_note",
+            "other_note",
+            "effective_amount",
+        ]
+
+        existing_columns = [col for col in columns if col in self.df.columns]
+
+        # TODO: Remove adding remaining columns after all columns are styled.
+        # Add remaining columns that aren't in the priority list
+        remaining_columns = [col for col in self.df.columns if col not in columns]
+        # Combine prioritized columns with remaining columns
+        ordered_columns = existing_columns + remaining_columns
+
+        self._df = self.df[ordered_columns]

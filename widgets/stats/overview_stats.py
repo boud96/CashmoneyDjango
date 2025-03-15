@@ -1,7 +1,10 @@
+from datetime import timedelta
+
+import pandas as pd
+
 from widgets.stats.base_widget import BaseWidget
 import streamlit as st
-from django.db.models import QuerySet, Sum, Avg
-from django.db.models.functions import TruncMonth
+from django.db.models import QuerySet, Sum
 
 SUM_INCOMES = "sum_of_incomes"
 SUM_EXPENSES = "sum_of_expenses"
@@ -11,9 +14,9 @@ MONTHLY_AVG_EXPENSES = "monthly_avg_expenses"
 MONTHLY_AVG_NET = "monthly_avg_net"
 
 
-#TODO: Fix - Does not include months where no transactions were made
 class OverviewStatsWidget(BaseWidget):
-    def __init__(self, transactions: QuerySet):
+    def __init__(self, transactions: QuerySet, filter_params: dict):
+        self.filter_params = filter_params
         super().__init__(transactions)
 
         self.stats = {}
@@ -29,20 +32,19 @@ class OverviewStatsWidget(BaseWidget):
         sum_of_incomes_str = f"{sum_of_incomes:,.0f}".replace(",", " ")
         net_sum_str = f"{net_sum:,.0f}".replace(",", " ")
 
-        monthly_avg_expenses = self.transactions.filter(amount__lt=0).annotate(
-            month=TruncMonth('date_of_transaction')
-        ).values('month').annotate(
-            monthly_sum=Sum("effective_amount")
-        ).aggregate(
-            avg_monthly_expenses=Avg('monthly_sum')
-        )['avg_monthly_expenses'] or 0
-        monthly_avg_incomes = self.transactions.filter(amount__gt=0).annotate(
-            month=TruncMonth('date_of_transaction')
-        ).values('month').annotate(
-            monthly_sum=Sum("effective_amount")
-        ).aggregate(
-            avg_monthly_incomes=Avg('monthly_sum')
-        )['avg_monthly_incomes'] or 0
+        transactions_df = pd.DataFrame.from_records(self.transactions.values())
+        transactions_df = self._add_month_start_transactions(transactions_df)
+
+        monthly_expenses_df = transactions_df[transactions_df['amount'] <= 0].groupby(
+            transactions_df['date_of_transaction'].dt.to_period('M')
+        )['effective_amount'].sum().reset_index(name='monthly_sum')
+        monthly_avg_expenses = monthly_expenses_df['monthly_sum'].mean() or 0
+
+        monthly_incomes_df = transactions_df[transactions_df['amount'] >= 0].groupby(
+            transactions_df['date_of_transaction'].dt.to_period('M')
+        )['effective_amount'].sum().reset_index(name='monthly_sum')
+        monthly_avg_incomes = monthly_incomes_df['monthly_sum'].mean() or 0
+
         monthly_avg_net = monthly_avg_incomes + monthly_avg_expenses
 
         monthly_avg_expenses_str = f"{monthly_avg_expenses:,.0f}".replace(",", " ")
@@ -57,6 +59,36 @@ class OverviewStatsWidget(BaseWidget):
             MONTHLY_AVG_INCOMES: monthly_avg_incomes_str,
             MONTHLY_AVG_NET: monthly_avg_net_str
         }
+
+    def _get_first_date(self):
+        first_date = self.transactions.order_by('date_of_transaction').first()["date_of_transaction"]
+        return first_date
+
+    def _get_last_date(self):
+        last_date = self.transactions.order_by('-date_of_transaction').first()["date_of_transaction"]
+        return last_date
+
+    def _add_month_start_transactions(self, transactions_df):
+        first_date = self.filter_params.get("date_from")
+        last_date = self.filter_params.get("date_to")
+
+        current_date = first_date.replace(day=1)
+        dates = []
+
+        while current_date <= last_date:
+            timestamp_date = pd.Timestamp(current_date).tz_localize('UTC')
+            dates.append(timestamp_date)
+
+            current_date += timedelta(days=32)
+            current_date = current_date.replace(day=1)
+
+        extra_transactions_df = pd.DataFrame({
+            "date_of_transaction": dates,
+            "amount": [0] * len(dates),
+            "effective_amount": [0] * len(dates)
+        })
+
+        return pd.concat([transactions_df, extra_transactions_df], ignore_index=True)
 
     def place_widget(self):
         if self.transactions:
