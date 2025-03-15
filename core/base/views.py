@@ -66,15 +66,15 @@ def get_counterparty_note(row: pd.Series, csv_map: CSVMapping) -> str:
 
 
 def get_constant_symbol(row: pd.Series, csv_map: CSVMapping) -> str:
-    return row.get(csv_map.constant_symbol)
+    return row.get(csv_map.constant_symbol) if row.get(csv_map.constant_symbol) else None
 
 
-def get_specific_symbol(row: pd.Series, csv_map: CSVMapping) -> str:
-    return row.get(csv_map.specific_symbol)
+def get_specific_symbol(row: pd.Series, csv_map: CSVMapping) -> str | None:
+    return row.get(csv_map.specific_symbol) if row.get(csv_map.specific_symbol) else None
 
 
-def get_variable_symbol(row: pd.Series, csv_map: CSVMapping) -> str:
-    return row.get(csv_map.variable_symbol)
+def get_variable_symbol(row: pd.Series, csv_map: CSVMapping) -> str | None:
+    return row.get(csv_map.variable_symbol) if row.get(csv_map.variable_symbol) else None
 
 
 def get_transaction_type(row: pd.Series, csv_map: CSVMapping) -> str:
@@ -160,6 +160,7 @@ def import_transactions(request):
 
                 subcategory = None
                 want_need_investment = None
+                # TODO: make lookup string settable on the CSVMapping level
                 lookup_str = f"{my_note} {other_note} {counterparty_note} {counterparty_name}"
                 matching_keywords = get_matching_keyword_objs(lookup_str)
 
@@ -197,6 +198,9 @@ def import_transactions(request):
                     "want_need_investment": want_need_investment,
                     "ignore": ignore
                 }
+
+                # Replace each value that is "" with None
+                transaction_data = {k: v if v != "" else None for k, v in transaction_data.items()}
 
                 transaction = Transaction(**transaction_data)
 
@@ -322,7 +326,7 @@ def recategorize_transactions(request):
 
             Transaction.objects.bulk_update(
                 updated_transactions,
-                fields=["subcategory", "want_need_investment"]
+                fields=["subcategory", "want_need_investment", "ignore"]
             )
 
             return JsonResponse(
