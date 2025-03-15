@@ -11,6 +11,7 @@ click==8.1.7
 contourpy==1.2.0
 cycler==0.12.1
 Django==5.0.2
+django-multiselectfield==0.1.13
 dm-tree==0.1.8
 etils==1.7.0
 flatbuffers==23.5.26

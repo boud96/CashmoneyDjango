@@ -83,6 +83,10 @@ class KeywordAdmin(admin.ModelAdmin):
 
 @admin.register(CSVMapping)
 class CSVMappingAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-    )
+    list_display = ("name", "categorization_fields_display")
+
+    def categorization_fields_display(self, obj):
+        """Display the categorization fields as a comma-separated string."""
+        return ", ".join([field.replace("_", " ").title() for field in obj.categorization_fields])
+
+    categorization_fields_display.short_description = "Categorization Fields"

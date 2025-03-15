@@ -3,6 +3,7 @@ import uuid
 import pandas as pd
 from django.db import models
 from django.db.models import Q, QuerySet, F, ExpressionWrapper, DecimalField
+from multiselectfield import MultiSelectField
 
 
 # TODO: Add plural names
@@ -232,6 +233,7 @@ class Keyword(AbstractBaseModel):
 def get_default_bank_account():
     return BankAccount.objects.first().id  # Or another way to get a valid instance
 
+
 class CSVMapping(AbstractBaseModel):
     name = models.CharField(max_length=128, null=False, blank=False)
     amount = models.CharField(max_length=128, null=True, blank=True)
@@ -253,13 +255,31 @@ class CSVMapping(AbstractBaseModel):
     counterparty_note = models.CharField(max_length=128, null=True, blank=True)
     date_of_submission_value = models.CharField(max_length=128, null=True, blank=True)
     date_of_submission_format = models.CharField(max_length=128, null=True, blank=True)
-    date_of_transaction_value = models.CharField(max_length=128, null=False, blank=False,)
+    date_of_transaction_value = models.CharField(max_length=128, null=False, blank=False)
     date_of_transaction_format = models.CharField(max_length=128, null=False, blank=False, default="%d.%m.%Y")
     counterparty_account_number = models.CharField(
         max_length=128, null=True, blank=True,
         help_text="Can be account number with or without bank code."
     )
     counterparty_bank_code = models.CharField(max_length=128, null=True, blank=True)
+
+    ALLOWED_FIELDS = ["my_note", "other_note", "counterparty_note", "counterparty_name", "transaction_type", "variable_symbol", "specific_symbol", "constant_symbol"]
+    CATEGORIZATION_CHOICES = [(field, field.replace("_", " ").title()) for field in ALLOWED_FIELDS]
+    categorization_fields = MultiSelectField(
+        choices=CATEGORIZATION_CHOICES,
+        blank=True,
+        help_text="Select fields you want to use for categorization."
+    )
+
+    @classmethod
+    def get_allowed_fields(cls):
+        return [field.name for field in cls._meta.get_fields() if field.concrete and not field.is_relation]
+
+    @classmethod
+    def get_categorization_choices(cls):
+        """Generate choices dynamically from allowed fields."""
+        allowed_fields = cls.get_allowed_fields()
+        return [(field, field.replace("_", " ").title()) for field in allowed_fields]
 
     @classmethod
     def get_csv_mappings(cls) -> list:
