@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import CSVMapping, Transaction, BankAccount
-from ..utils import get_matching_keyword_objs
+from core.base.utils.utils import get_matching_keyword_objs
 
 
 def get_original_id(row: pd.Series, csv_map: CSVMapping) -> str:

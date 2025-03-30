@@ -1,6 +1,15 @@
 from django.contrib import admin
 
-from core.base.models import BankAccount, Category, Transaction, Subcategory, Tag, TransactionTag, Keyword, CSVMapping
+from core.base.models import (
+    BankAccount,
+    Category,
+    Transaction,
+    Subcategory,
+    Tag,
+    TransactionTag,
+    Keyword,
+    CSVMapping,
+)
 
 
 @admin.register(BankAccount)
