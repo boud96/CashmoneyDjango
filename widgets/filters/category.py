@@ -12,7 +12,10 @@ class CategoryFilter(BaseFilter):
     def _fetch_categories(self):
         categories = {"None": "None"}
         categories.update(
-            {str(category.id): category.name for category in self.model.objects.all().order_by("name")}
+            {
+                str(category.id): category.name
+                for category in self.model.objects.all().order_by("name")
+            }
         )
         return categories
 
@@ -51,12 +54,22 @@ class CategoryFilter(BaseFilter):
             # Columns for select/deselect buttons inside the expander
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("Select All", key=f"{self.model.__name__}_select_all", on_click =self._select_all):
+                if st.button(
+                    "Select All",
+                    key=f"{self.model.__name__}_select_all",
+                    on_click=self._select_all,
+                ):
                     pass  # The actual change will happen in the callback
             with col2:
-                if st.button("Deselect All", key=f"{self.model.__name__}_deselect_all", on_click =self._deselect_all):
+                if st.button(
+                    "Deselect All",
+                    key=f"{self.model.__name__}_deselect_all",
+                    on_click=self._deselect_all,
+                ):
                     pass  # The actual change will happen in the callback
 
             # Map selected options back to category IDs
-            selected_ids = [key for key, value in self.categories.items() if value in selected]
+            selected_ids = [
+                key for key, value in self.categories.items() if value in selected
+            ]
             self.set_param(self.model.__name__.lower(), selected_ids)

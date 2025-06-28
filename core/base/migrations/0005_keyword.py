@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("base", "0004_tag_transaction_ignore_transaction_original_id_and_more"),
     ]

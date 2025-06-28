@@ -1,4 +1,3 @@
-from functools import cached_property
 import pandas as pd
 import streamlit as st
 import plotly.express as px
@@ -23,7 +22,10 @@ class DataFrameWidget:
     def _name_colors(self, column_name):
         """Assign unique colors to each unique value in a specified column."""
         unique_values = self.df[column_name].unique()
-        return {value: color for value, color in zip(unique_values, px.colors.qualitative.Prism)}
+        return {
+            value: color
+            for value, color in zip(unique_values, px.colors.qualitative.Prism)
+        }
 
     def _style_names(self, val, column_name):
         """Apply unique background colors to each value based on the column."""
@@ -39,10 +41,18 @@ class DataFrameWidget:
     def _create_styled_dataframe(self):
         """Style the transactions DataFrame and render it in Streamlit."""
         styled_df = (
-            self.df.style
-            .applymap(lambda val: self._style_names(val, "account_name"), subset=["account_name"])
-            .applymap(lambda val: self._style_names(val, "category_name"), subset=["category_name"])
-            .applymap(lambda val: self._style_names(val, "subcategory_name"), subset=["subcategory_name"])
+            self.df.style.applymap(
+                lambda val: self._style_names(val, "account_name"),
+                subset=["account_name"],
+            )
+            .applymap(
+                lambda val: self._style_names(val, "category_name"),
+                subset=["category_name"],
+            )
+            .applymap(
+                lambda val: self._style_names(val, "subcategory_name"),
+                subset=["subcategory_name"],
+            )
             .applymap(self._style_amount, subset=["effective_amount"])
         ).format({"effective_amount": "{:.2f}"})
 

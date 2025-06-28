@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("base", "0011_csvmapping_amount_csvmapping_bank_account_and_more"),
     ]

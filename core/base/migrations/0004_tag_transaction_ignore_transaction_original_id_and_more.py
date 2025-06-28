@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("base", "0003_delete_imageannotation_bankaccount_owners_and_more"),
     ]

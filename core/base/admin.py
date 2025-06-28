@@ -27,14 +27,25 @@ class TransactionTagInline(admin.TabularInline):
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    search_fields = ["original_id", "date_of_transaction", "bank_account__account_name", "amount", "counterparty_account_number", "counterparty_name", "counterparty_note", "my_note", "other_note", "currency"]
+    search_fields = [
+        "original_id",
+        "date_of_transaction",
+        "bank_account__account_name",
+        "amount",
+        "counterparty_account_number",
+        "counterparty_name",
+        "counterparty_note",
+        "my_note",
+        "other_note",
+        "currency",
+    ]
     list_filter = [
         "bank_account",
         "subcategory__category",
         "subcategory",
         "want_need_investment",
         "ignore",
-        "currency"
+        "currency",
     ]
 
     list_display = (
@@ -49,7 +60,7 @@ class TransactionAdmin(admin.ModelAdmin):
         "other_note",
         "ignore",
         "currency",
-        "get_tags"
+        "get_tags",
     )
 
     inlines = [TransactionTagInline]
@@ -57,37 +68,22 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "description"
-    )
+    list_display = ("name", "description")
 
 
 @admin.register(Subcategory)
 class SubcategoryAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "description",
-        "category"
-    )
+    list_display = ("name", "description", "category")
 
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "description"
-    )
+    list_display = ("name", "description")
 
 
 @admin.register(Keyword)
 class KeywordAdmin(admin.ModelAdmin):
-    list_display = (
-        "value",
-        "subcategory",
-        "want_need_investment",
-        "ignore"
-    )
+    list_display = ("value", "subcategory", "want_need_investment", "ignore")
 
 
 @admin.register(CSVMapping)
@@ -96,6 +92,8 @@ class CSVMappingAdmin(admin.ModelAdmin):
 
     def categorization_fields_display(self, obj):
         """Display the categorization fields as a comma-separated string."""
-        return ", ".join([field.replace("_", " ").title() for field in obj.categorization_fields])
+        return ", ".join(
+            [field.replace("_", " ").title() for field in obj.categorization_fields]
+        )
 
     categorization_fields_display.short_description = "Categorization Fields"

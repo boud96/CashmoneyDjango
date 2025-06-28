@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path
 
@@ -26,9 +27,14 @@ class URLConstant:
     RECATEGORIZE_TRANSACTIONS = "recategorize-transactions/"
 
 
-
 urlpatterns = [
     path(URLConstant.ADMIN, admin.site.urls),
-    path(URLConstant.IMPORT_TRANSACTIONS, import_transactions, name="import-transactions"),
-    path(URLConstant.RECATEGORIZE_TRANSACTIONS, recategorize_transactions, name="recategorize-transactions"),
+    path(
+        URLConstant.IMPORT_TRANSACTIONS, import_transactions, name="import-transactions"
+    ),
+    path(
+        URLConstant.RECATEGORIZE_TRANSACTIONS,
+        recategorize_transactions,
+        name="recategorize-transactions",
+    ),
 ]

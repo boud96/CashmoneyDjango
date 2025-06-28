@@ -18,7 +18,7 @@ class DateFilter(BaseFilter):
         location.header("Select a Date Range:")
 
         today = datetime.today()
-        default_date_from = today - timedelta(days=2*365)  # Roughly two years ago
+        default_date_from = today - timedelta(days=2 * 365)  # Roughly two years ago
         default_date_to = today
 
         self.date_from = location.date_input("From", value=default_date_from.date())

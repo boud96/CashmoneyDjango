@@ -14,7 +14,9 @@ class RecalculateAmountsByOwnersFilter(BaseFilter):
         """
         location = st.sidebar if sidebar else st
         location.header("Recalculate Amounts by Owners:")
-        self.recalculate_by_owners = location.checkbox("By number of account owners", value=False)
+        self.recalculate_by_owners = location.checkbox(
+            "By number of account owners", value=False
+        )
 
         # Update filter params to use 'recalculate_by_owners'
         self.set_param("recalculate_by_owners", self.recalculate_by_owners)

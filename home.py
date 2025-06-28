@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+import django
 
 from widgets.filters.bank_account import BankAccountFilter
 from widgets.filters.by_owners import RecalculateAmountsByOwnersFilter
@@ -11,14 +12,13 @@ from widgets.stats.bar_chart import BarChartWidget
 from widgets.stats.dataframe import DataFrameWidget
 from widgets.stats.category_sunburst import TransactionSunburstWidget
 from widgets.stats.wni_sunburst import TransactionWNIWidget
-
-os.environ['DJANGO_SETTINGS_MODULE'] = 'core.settings'
-import django
-
-django.setup()
-from core.base.models import Transaction, Category, Subcategory, BankAccount
-
 from widgets.stats.overview_stats import OverviewStatsWidget
+
+os.environ["DJANGO_SETTINGS_MODULE"] = "core.settings"
+django.setup()
+
+# TODO: Figure out proper import
+from core.base.models import Transaction, Category, Subcategory, BankAccount  # noqa
 
 
 def main():

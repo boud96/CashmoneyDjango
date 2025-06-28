@@ -11,11 +11,7 @@ st.write("Mark warned transaction as OK")
 
 # Step 1: Find duplicates grouped by the specified fields
 duplicates = (
-    Transaction.objects.values(
-        "amount",
-        "original_id",
-        "counterparty_note"
-    )
+    Transaction.objects.values("amount", "original_id", "counterparty_note")
     .annotate(count=Count("id"))
     .filter(count__gt=1)
 )
@@ -26,8 +22,8 @@ if duplicates:
     for duplicate in duplicates:
         st.write(
             f"Amount: {duplicate['amount']}, "
-            #f"Date of Submission: {duplicate['date_of_submission']}, "
-            #f"Date of Transaction: {duplicate['date_of_transaction']}, "
+            # f"Date of Submission: {duplicate['date_of_submission']}, "
+            # f"Date of Transaction: {duplicate['date_of_transaction']}, "
             f"Original ID: {duplicate['original_id']}, "
             f"Count: {duplicate['count']}"
         )
@@ -44,4 +40,3 @@ if duplicates:
         st.divider()  # Add a newline for better readability
 else:
     print("No duplicates found.")
-

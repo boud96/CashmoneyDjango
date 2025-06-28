@@ -14,7 +14,9 @@ class ShowIgnoredFilter(BaseFilter):
         """
         location = st.sidebar if sidebar else st
         location.header("Show Ignored Transactions:")
-        self.show_ignored = location.checkbox("Include ignored transactions?", value=False)
+        self.show_ignored = location.checkbox(
+            "Include ignored transactions?", value=False
+        )
 
         # Update filter params to use 'show_ignored'
         self.set_param("show_ignored", self.show_ignored)

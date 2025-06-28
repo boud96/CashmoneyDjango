@@ -66,15 +66,21 @@ def get_counterparty_note(row: pd.Series, csv_map: CSVMapping) -> str:
 
 
 def get_constant_symbol(row: pd.Series, csv_map: CSVMapping) -> str:
-    return row.get(csv_map.constant_symbol) if row.get(csv_map.constant_symbol) else None
+    return (
+        row.get(csv_map.constant_symbol) if row.get(csv_map.constant_symbol) else None
+    )
 
 
 def get_specific_symbol(row: pd.Series, csv_map: CSVMapping) -> str | None:
-    return row.get(csv_map.specific_symbol) if row.get(csv_map.specific_symbol) else None
+    return (
+        row.get(csv_map.specific_symbol) if row.get(csv_map.specific_symbol) else None
+    )
 
 
 def get_variable_symbol(row: pd.Series, csv_map: CSVMapping) -> str | None:
-    return row.get(csv_map.variable_symbol) if row.get(csv_map.variable_symbol) else None
+    return (
+        row.get(csv_map.variable_symbol) if row.get(csv_map.variable_symbol) else None
+    )
 
 
 def get_transaction_type(row: pd.Series, csv_map: CSVMapping) -> str:
@@ -117,7 +123,9 @@ def import_transactions(request):
 
             # Trailing delimiters handle - without it, it sometimes throws an error
             raw_data = csv_file.read().decode(csv_map.encoding)
-            cleaned_data = "\n".join(line.rstrip(csv_map.delimiter) for line in raw_data.splitlines())
+            cleaned_data = "\n".join(
+                line.rstrip(csv_map.delimiter) for line in raw_data.splitlines()
+            )
 
             df = pd.read_csv(
                 io.StringIO(cleaned_data),
@@ -125,12 +133,12 @@ def import_transactions(request):
                 header=csv_map.header,
                 delimiter=csv_map.delimiter,
                 on_bad_lines="warn",
-                dtype=str
-            ).fillna('')
+                dtype=str,
+            ).fillna("")
 
             # Clean up unwanted whitespaces
-            df.columns = df.columns.str.replace(r'\xa0', ' ', regex=True)
-            df = df.map(lambda x: x.replace(r'\xa0', ' ') if isinstance(x, str) else x)
+            df.columns = df.columns.str.replace(r"\xa0", " ", regex=True)
+            df = df.map(lambda x: x.replace(r"\xa0", " ") if isinstance(x, str) else x)
 
             # Import data into the Transaction model
             created = []
@@ -155,13 +163,17 @@ def import_transactions(request):
                 specific_symbol = get_specific_symbol(row, csv_map)
                 variable_symbol = get_variable_symbol(row, csv_map)
                 transaction_type = get_transaction_type(row, csv_map)
-                counterparty_account_number = get_counterparty_account_number(row, csv_map)
+                counterparty_account_number = get_counterparty_account_number(
+                    row, csv_map
+                )
                 counterparty_name = get_counterparty_name(row, csv_map)
 
                 subcategory = None
                 want_need_investment = None
                 # TODO: make lookup string settable on the CSVMapping level
-                lookup_str = f"{my_note} {other_note} {counterparty_note} {counterparty_name}"
+                lookup_str = (
+                    f"{my_note} {other_note} {counterparty_note} {counterparty_name}"
+                )
                 matching_keywords = get_matching_keyword_objs(lookup_str)
 
                 is_category_overlap = False
@@ -175,7 +187,9 @@ def import_transactions(request):
                     is_uncategorized = True
 
                 ignore = matching_keywords[0].ignore if matching_keywords else False
-                if BankAccount.objects.filter(account_number=counterparty_account_number).exists():
+                if BankAccount.objects.filter(
+                    account_number=counterparty_account_number
+                ).exists():
                     ignore = True
 
                 transaction_data = {
@@ -196,11 +210,13 @@ def import_transactions(request):
                     "counterparty_name": counterparty_name,
                     "subcategory": subcategory,
                     "want_need_investment": want_need_investment,
-                    "ignore": ignore
+                    "ignore": ignore,
                 }
 
                 # Replace each value that is "" with None
-                transaction_data = {k: v if v != "" else None for k, v in transaction_data.items()}
+                transaction_data = {
+                    k: v if v != "" else None for k, v in transaction_data.items()
+                }
 
                 transaction = Transaction(**transaction_data)
 
@@ -241,20 +257,21 @@ def import_transactions(request):
                         "transactions": [str(t) for t in created],
                         "category_overlap": {
                             "message": f"Uncategorized {len(category_overlap)} transactions due to category overlap",
-                            "transactions": category_overlap
+                            "transactions": category_overlap,
                         },
                         "uncategorized": {
                             "message": f"Uncategorized {len(uncategorized)} transactions due to no matching keywords",
-                            "transactions": uncategorized
-                        }
+                            "transactions": uncategorized,
+                        },
                     },
                     "skipped": {
                         "message": f"Skipped {len(duplicates)} transactions due to duplicates",
-                        "transactions": duplicates
-                    }  # TODO: whole loop into Try-Except, append other reasons to generic skipped
+                        "transactions": duplicates,
+                    },  # TODO: whole loop into Try-Except, append other reasons to generic skipped
                     # add other skip types if needed
-                }
-                , status=201)
+                },
+                status=201,
+            )
 
         except Exception as e:
             print(traceback.format_exc())  # TODO: DEBUG remove
@@ -267,7 +284,9 @@ def import_transactions(request):
 def recategorize_transactions(request):
     if request.method == "POST":
         try:
-            recategorize_assigned = request.POST.get("recategorize_assigned", "false").lower() == "true"
+            recategorize_assigned = (
+                request.POST.get("recategorize_assigned", "false").lower() == "true"
+            )
 
             if recategorize_assigned:
                 transactions = Transaction.objects.all()
@@ -291,12 +310,20 @@ def recategorize_transactions(request):
                     want_need_investment = matching_keywords[0].want_need_investment
                     updated_transactions.append(transaction)
 
-                elif len(matching_keywords) > 1:  # TODO: Implement this to the import_transactions view
+                elif (
+                    len(matching_keywords) > 1
+                ):  # TODO: Implement this to the import_transactions view
                     first_subcategory = matching_keywords[0].subcategory
-                    first_want_need_investment = matching_keywords[0].want_need_investment
+                    first_want_need_investment = matching_keywords[
+                        0
+                    ].want_need_investment
                     all_same = True
                     for keyword in matching_keywords:
-                        if keyword.subcategory != first_subcategory or keyword.want_need_investment != first_want_need_investment:
+                        if (
+                            keyword.subcategory != first_subcategory
+                            or keyword.want_need_investment
+                            != first_want_need_investment
+                        ):
                             all_same = False
                             break
                     if all_same:
@@ -315,7 +342,9 @@ def recategorize_transactions(request):
 
                 # TODO: check if behavior is correct
                 ignore = matching_keywords[0].ignore if matching_keywords else False
-                if BankAccount.objects.filter(account_number=transaction.counterparty_account_number).exists():
+                if BankAccount.objects.filter(
+                    account_number=transaction.counterparty_account_number
+                ).exists():
                     ignore = True
 
                 transaction.subcategory = subcategory
@@ -326,7 +355,7 @@ def recategorize_transactions(request):
 
             Transaction.objects.bulk_update(
                 updated_transactions,
-                fields=["subcategory", "want_need_investment", "ignore"]
+                fields=["subcategory", "want_need_investment", "ignore"],
             )
 
             return JsonResponse(
@@ -343,12 +372,12 @@ def recategorize_transactions(request):
                         "message": f"Skipped {len(category_overlap) + len(uncategorized)} transactions",
                         "category_overlap": {
                             "message": f"Overlapping categories for {len(category_overlap)} transactions",
-                            "transactions": category_overlap
+                            "transactions": category_overlap,
                         },
                         "uncategorized": {
                             "message": f"Category not found for {len(uncategorized)} transactions",
-                            "transactions": uncategorized
-                        }
+                            "transactions": uncategorized,
+                        },
                     },
                 },
                 status=200,

@@ -3,8 +3,12 @@ import requests
 from core.base.models import CSVMapping, BankAccount
 from core.urls import URLConstant
 
-import_url = "http://127.0.0.1:8000/" + URLConstant.IMPORT_TRANSACTIONS  # TODO: Let backend handle this
-recategorize_url = "http://127.0.0.1:8000/" + URLConstant.RECATEGORIZE_TRANSACTIONS  # TODO: Let backend handle this
+import_url = (
+    "http://127.0.0.1:8000/" + URLConstant.IMPORT_TRANSACTIONS
+)  # TODO: Let backend handle this
+recategorize_url = (
+    "http://127.0.0.1:8000/" + URLConstant.RECATEGORIZE_TRANSACTIONS
+)  # TODO: Let backend handle this
 
 with st.form("import_csv_form"):
     st.title("Import CSV")
@@ -13,7 +17,9 @@ with st.form("import_csv_form"):
 
     mappings = CSVMapping.get_csv_mappings()
     mapping_dict = {mapping.name: mapping for mapping in mappings}
-    selected_name = st.selectbox("Select CSV Mapping", options=list(mapping_dict.keys()))
+    selected_name = st.selectbox(
+        "Select CSV Mapping", options=list(mapping_dict.keys())
+    )
     selected_mapping = mapping_dict[selected_name]
 
     bank_accounts = BankAccount.get_bank_accounts()
@@ -41,11 +47,12 @@ with st.form("import_csv_form"):
                     st.success("Data submitted successfully!")
                     st.json(response.json())
                 else:
-                    st.error(f"Failed to submit data! Status code: {response.status_code}")
+                    st.error(
+                        f"Failed to submit data! Status code: {response.status_code}"
+                    )
                     st.json(response.json())
             except requests.exceptions.RequestException as e:
                 st.error(f"An error occurred: {e}")
-
 
 
 with st.expander("Recategorize Transactions", expanded=True):
@@ -71,7 +78,9 @@ with st.expander("Recategorize Transactions", expanded=True):
                 st.success("Recategorization completed successfully!")
                 st.json(response.json())  # Single st.json for success response
             else:
-                st.error(f"Failed to complete recategorization! Status code: {response.status_code}")
+                st.error(
+                    f"Failed to complete recategorization! Status code: {response.status_code}"
+                )
                 st.json(response.json())  # Single st.json for error response
 
         except requests.exceptions.RequestException as e:
