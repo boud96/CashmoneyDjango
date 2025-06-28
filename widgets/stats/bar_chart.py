@@ -31,7 +31,7 @@ class BarChartWidget(BaseWidget):
         dates = []
 
         while current_date <= last_date:
-            timestamp_date = pd.Timestamp(current_date).tz_localize("UTC")
+            timestamp_date = pd.Timestamp(current_date)
             dates.append(timestamp_date)
 
             current_date += timedelta(days=32)
@@ -72,7 +72,7 @@ class BarChartWidget(BaseWidget):
         all_months = pd.date_range(
             start=data["month_year"].min().start_time,
             end=data["month_year"].max().end_time,
-            freq="M",
+            freq="ME",
         ).to_period("M")
 
         full_range = pd.DataFrame(all_months, columns=["month_year"])

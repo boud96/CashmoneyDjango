@@ -43,6 +43,9 @@ class OverviewStatsWidget(BaseWidget):
         net_sum_str = f"{net_sum:,.0f}".replace(",", " ")
 
         transactions_df = pd.DataFrame.from_records(self.transactions.values())
+        transactions_df["date_of_transaction"] = pd.to_datetime(
+            transactions_df["date_of_transaction"]
+        )
         transactions_df = self._add_month_start_transactions(transactions_df)
 
         monthly_expenses_df = (
@@ -100,7 +103,7 @@ class OverviewStatsWidget(BaseWidget):
         dates = []
 
         while current_date <= last_date:
-            timestamp_date = pd.Timestamp(current_date).tz_localize("UTC")
+            timestamp_date = pd.Timestamp(current_date)
             dates.append(timestamp_date)
 
             current_date += timedelta(days=32)
