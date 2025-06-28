@@ -41,19 +41,19 @@ class DataFrameWidget:
     def _create_styled_dataframe(self):
         """Style the transactions DataFrame and render it in Streamlit."""
         styled_df = (
-            self.df.style.applymap(
+            self.df.style.map(
                 lambda val: self._style_names(val, "account_name"),
                 subset=["account_name"],
             )
-            .applymap(
+            .map(
                 lambda val: self._style_names(val, "category_name"),
                 subset=["category_name"],
             )
-            .applymap(
+            .map(
                 lambda val: self._style_names(val, "subcategory_name"),
                 subset=["subcategory_name"],
             )
-            .applymap(self._style_amount, subset=["effective_amount"])
+            .map(self._style_amount, subset=["effective_amount"])
         ).format({"effective_amount": "{:.2f}"})
 
         st.dataframe(styled_df)
