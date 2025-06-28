@@ -31,7 +31,7 @@ class BarChartWidget(BaseWidget):
         dates = []
 
         while current_date <= last_date:
-            timestamp_date = pd.Timestamp(current_date).tz_localize("UTC")
+            timestamp_date = pd.Timestamp(current_date)
             dates.append(timestamp_date)
 
             current_date += timedelta(days=32)
@@ -57,9 +57,7 @@ class BarChartWidget(BaseWidget):
         data = self._add_month_start_transactions(data)
         data["effective_amount"] = data["effective_amount"].astype(float)
 
-        data["date_of_transaction"] = pd.to_datetime(
-            data["date_of_transaction"], utc=True
-        )
+        data["date_of_transaction"] = pd.to_datetime(data["date_of_transaction"])
         data["month_year"] = data["date_of_transaction"].dt.to_period("M")
 
         grouped = (
