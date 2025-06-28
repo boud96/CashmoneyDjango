@@ -1,0 +1,87 @@
+import os
+import streamlit as st
+import django
+
+from widgets.filters.bank_account import BankAccountFilter
+from widgets.filters.by_owners import RecalculateAmountsByOwnersFilter
+from widgets.filters.category import CategoryFilter
+from widgets.filters.date import DateFilter
+from widgets.filters.ignored import ShowIgnoredFilter
+from widgets.filters.manager import FilterManager
+from widgets.stats.bar_chart import BarChartWidget
+from widgets.stats.dataframe import DataFrameWidget
+from widgets.stats.category_sunburst import TransactionSunburstWidget
+from widgets.stats.wni_sunburst import TransactionWNIWidget
+from widgets.stats.overview_stats import OverviewStatsWidget
+
+os.environ["DJANGO_SETTINGS_MODULE"] = "core.settings"
+django.setup()
+
+# TODO: Figure out proper import
+from core.base.models import Transaction, Category, Subcategory, BankAccount  # noqa
+
+
+def main():
+    st.set_page_config(page_title="Cashmoney", layout="wide", page_icon="")
+
+    # Initialize the FilterManager
+    filter_manager = FilterManager()
+
+    # Add DateFilter
+    date_filter = DateFilter()
+    filter_manager.add_filter("date", date_filter)
+
+    # Add CategoryFilter
+    category_filter = CategoryFilter(Category, label="Select Categories")
+    filter_manager.add_filter("category", category_filter)
+
+    # Add SubcategoryFilter
+    subcategory_filter = CategoryFilter(Subcategory, label="Select Subcategories")
+    filter_manager.add_filter("subcategory", subcategory_filter)
+
+    # Add ShowIgnoredFilter
+    show_ignored_filter = ShowIgnoredFilter()
+    filter_manager.add_filter("show_ignored", show_ignored_filter)
+
+    # Add RecalculateAmountsByOwnersFilter
+    recalculate_by_owners_filter = RecalculateAmountsByOwnersFilter()
+    filter_manager.add_filter("recalculate_by_owners", recalculate_by_owners_filter)
+
+    # Add BankAccountFilter  # TODO: Remove None?
+    bank_account_filter = BankAccountFilter(BankAccount, label="Select Bank Accounts")
+    filter_manager.add_filter("bank_account", bank_account_filter)
+
+    # Place all widgets in the sidebar
+    filter_manager.place_widgets(sidebar=True)
+
+    # Get combined filter params
+    filter_params = filter_manager.get_combined_params()
+    st.write("Combined Filter Parameters:")  # TODO: Remove - debug
+    st.json(filter_params, expanded=False)
+
+    transactions = Transaction.get_transactions_from_db(filter_params)
+    if not transactions:
+        st.info("No transactions found.")
+        return
+
+    # Overview Stats
+    overview_stats = OverviewStatsWidget(transactions, filter_params)
+    overview_stats.place_widget()
+
+    # Bar Chart
+    bar_chart = BarChartWidget(transactions, filter_params)
+    bar_chart.place_widget()
+
+    # DataFrame
+    transactions_dataframe = DataFrameWidget(transactions)
+    transactions_dataframe.place_widget()
+
+    transaction_sunburst = TransactionSunburstWidget(transactions)
+    transaction_sunburst.place_widget()
+
+    widget = TransactionWNIWidget(transactions)
+    widget.place_widget()
+
+
+if __name__ == "__main__":
+    main()

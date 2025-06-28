@@ -1,0 +1,26 @@
+# Pre-commit configuration for automatic code formatting and checking
+#
+# Can be installed with:
+# $ pip install pre-commit
+# $ pre-commit install
+#
+
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+    -   id: trailing-whitespace  # remove trailing whitespaces except markdown files
+        args: [--markdown-linebreak-ext=md]
+    -   id: end-of-file-fixer  # add empty line at the end of files
+    -   id: check-yaml  # Check yaml
+        args: ['--unsafe']
+    -   id: check-added-large-files  # Check if no file larger than 2MB has been added.
+        args: ['--maxkb=2048']
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.6
+    hooks:
+        # Run the linter.
+        - id: ruff
+          args: [ --fix ]
+        # Run the formatter.
+        - id: ruff-format
