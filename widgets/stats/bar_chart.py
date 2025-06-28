@@ -57,7 +57,9 @@ class BarChartWidget(BaseWidget):
         data = self._add_month_start_transactions(data)
         data["effective_amount"] = data["effective_amount"].astype(float)
 
-        data["date_of_transaction"] = pd.to_datetime(data["date_of_transaction"])
+        data["date_of_transaction"] = pd.to_datetime(
+            data["date_of_transaction"], utc=True
+        )
         data["month_year"] = data["date_of_transaction"].dt.to_period("M")
 
         grouped = (

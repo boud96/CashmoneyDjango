@@ -43,6 +43,9 @@ class OverviewStatsWidget(BaseWidget):
         net_sum_str = f"{net_sum:,.0f}".replace(",", " ")
 
         transactions_df = pd.DataFrame.from_records(self.transactions.values())
+        transactions_df["date_of_transaction"] = pd.to_datetime(
+            transactions_df["date_of_transaction"], utc=True
+        )
         transactions_df = self._add_month_start_transactions(transactions_df)
 
         monthly_expenses_df = (
