@@ -85,6 +85,7 @@ class DataFrameWidget:
         existing_columns = [col for col in columns if col in self.df.columns]
 
         # TODO: Remove adding remaining columns after all columns are styled.
+        # TODO: Here the warning "Serialization of dataframe to Arrow table" comes from
         # Add remaining columns that aren't in the priority list
         remaining_columns = [col for col in self.df.columns if col not in columns]
         # Combine prioritized columns with remaining columns
