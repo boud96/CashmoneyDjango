@@ -15,6 +15,7 @@ class DataFrameWidget:
     MY_NOTE_COL = "my_note"
     OTHER_NOTE_COL = "other_note"
     AMOUNT_COL = "effective_amount"
+    WANT_NEED_INVESTMENT_COL = "want_need_investment"
 
     COLUMN_DISPLAY_NAMES = {
         DATE_COL: "Date",
@@ -26,6 +27,7 @@ class DataFrameWidget:
         MY_NOTE_COL: "My Note",
         OTHER_NOTE_COL: "Other Note",
         AMOUNT_COL: "Amount",
+        WANT_NEED_INVESTMENT_COL: "W / N / I",
     }
 
     def __init__(self, transactions: QuerySet):
@@ -108,20 +110,18 @@ class DataFrameWidget:
 
         columns = [
             self.DATE_COL,
-            self.ACCOUNT_COL,
             self.CATEGORY_COL,
             self.SUBCATEGORY_COL,
+            self.ACCOUNT_COL,
+            self.WANT_NEED_INVESTMENT_COL,
+            self.AMOUNT_COL,
             self.COUNTERPARTY_COL,
             self.COUNTERPARTY_NOTE_COL,
             self.MY_NOTE_COL,
             self.OTHER_NOTE_COL,
-            self.AMOUNT_COL,
         ]
 
-        existing_columns = [col for col in columns if col in self.df.columns]
-        remaining_columns = [col for col in self.df.columns if col not in columns]
-        ordered_columns = existing_columns + remaining_columns
-
+        ordered_columns = [col for col in columns if col in self.df.columns]
         self._df = self.df[ordered_columns]
 
     def place_widget(self):
