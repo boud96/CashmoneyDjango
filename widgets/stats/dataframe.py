@@ -5,7 +5,6 @@ from django.db.models import QuerySet
 
 
 class DataFrameWidget:
-    # Column name constants
     DATE_COL = "date_of_transaction"
     ACCOUNT_COL = "account_name"
     CATEGORY_COL = "category_name"
