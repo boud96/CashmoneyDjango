@@ -54,9 +54,14 @@ class DataFrameWidget:
                 subset=["subcategory_name"],
             )
             .map(self._style_amount, subset=["effective_amount"])
-        ).format({"effective_amount": "{:.2f}"})
+        ).format(
+            {
+                "effective_amount": "{:.2f}",
+                "date_of_transaction": lambda x: x.strftime("%Y-%m-%d"),
+            }
+        )
 
-        st.dataframe(styled_df)
+        st.dataframe(styled_df, hide_index=True)
         return styled_df
 
     def place_widget(self):
