@@ -46,10 +46,19 @@ class DataFrameWidget:
     def _name_colors(self, column_name):
         """Assign unique colors to each unique value in a specified column."""
         unique_values = self.df[column_name].unique()
-        return {
-            value: color
-            for value, color in zip(unique_values, px.colors.qualitative.Prism)
-        }
+        swatches = (
+            px.colors.qualitative.Prism
+            + px.colors.qualitative.Vivid
+            + px.colors.qualitative.Pastel
+            + px.colors.qualitative.Safe
+        )
+
+        color_map = {value: color for value, color in zip(unique_values, swatches)}
+
+        if None in color_map:
+            color_map[None] = "#808080"
+
+        return color_map
 
     def _style_names(self, val, column_name):
         """Apply unique background colors to each value based on the column."""
