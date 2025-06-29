@@ -89,6 +89,12 @@ class DataFrameWidget:
                 subset=[self.COLUMN_DISPLAY_NAMES[self.SUBCATEGORY_COL]],
             )
             .map(
+                lambda val: self._style_names(
+                    val, self.COLUMN_DISPLAY_NAMES[self.WANT_NEED_INVESTMENT_COL]
+                ),
+                subset=[self.COLUMN_DISPLAY_NAMES[self.WANT_NEED_INVESTMENT_COL]],
+            )
+            .map(
                 self._style_amount, subset=[self.COLUMN_DISPLAY_NAMES[self.AMOUNT_COL]]
             )
         ).format(
