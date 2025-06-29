@@ -146,7 +146,7 @@ class Transaction(AbstractBaseModel):
                 "amount",
                 "effective_amount",
             )
-        )
+        ).order_by("-date_of_transaction")
 
         return transactions
 
