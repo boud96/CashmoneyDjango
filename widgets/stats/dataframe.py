@@ -30,9 +30,9 @@ class DataFrameWidget:
 
     def __init__(self, transactions: QuerySet):
         self.transactions = transactions
-        self._df = None  # Internal DataFrame storage
+        self._df = None
 
-    @property  # Changed from cached_property to regular property
+    @property
     def df(self):
         """Convert the QuerySet to a DataFrame."""
         if self._df is None:
