@@ -331,7 +331,7 @@ class CSVMapping(AbstractBaseModel):
     CATEGORIZATION_CHOICES = [
         (field, field.replace("_", " ").title()) for field in ALLOWED_FIELDS
     ]
-    categorization_fields = MultiSelectField(
+    categorization_fields = MultiSelectField(  # TODO: Implement in the views
         choices=CATEGORIZATION_CHOICES,
         blank=True,
         help_text="Select fields you want to use for categorization.",
