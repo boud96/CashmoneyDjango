@@ -1,10 +1,11 @@
 import pandas as pd
 import streamlit as st
-import plotly.express as px
 from django.db.models import QuerySet
 
+from widgets.stats.base_widget import BaseWidget
 
-class DataFrameWidget:
+
+class DataFrameWidget(BaseWidget):
     DATE_COL = "date_of_transaction"
     ACCOUNT_COL = "account_name"
     CATEGORY_COL = "category_name"
@@ -30,6 +31,7 @@ class DataFrameWidget:
     }
 
     def __init__(self, transactions: QuerySet):
+        super().__init__(transactions)
         self.transactions = transactions
         self._df = None
 
@@ -45,25 +47,28 @@ class DataFrameWidget:
 
     def _name_colors(self, column_name):
         """Assign unique colors to each unique value in a specified column."""
-        unique_values = self.df[column_name].unique()
-        swatches = (
-            px.colors.qualitative.Prism
-            + px.colors.qualitative.Vivid
-            + px.colors.qualitative.Pastel
-            + px.colors.qualitative.Safe
-        )
+        if column_name == self.CATEGORY_COL:
+            color_map = self.get_category_color_map()
+        elif column_name == self.SUBCATEGORY_COL:
+            color_map = self.get_subcategory_color_map()
+        else:
+            # Convert None to "None" before sorting
+            unique_values = self.df[column_name].fillna("None").unique()
+            unique_values = sorted(unique_values)
+            swatches = self.get_color_swatches()
+            color_map = {value: color for value, color in zip(unique_values, swatches)}
 
-        color_map = {value: color for value, color in zip(unique_values, swatches)}
-
-        if None in color_map:
+            # TODO: Clean the date beforehand so this None hadnling is not necessary
             color_map[None] = "#808080"
+            color_map["None"] = "#808080"
 
         return color_map
 
     def _style_names(self, val, column_name):
         """Apply unique background colors to each value based on the column."""
         colors = self._name_colors(column_name)
-        return f"background-color: {colors.get(val, '')}"
+        lookup_val = "None" if val is None else val
+        return f"background-color: {colors.get(lookup_val, '')}"
 
     @staticmethod
     def _style_amount(val):

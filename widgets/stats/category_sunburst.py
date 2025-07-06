@@ -14,7 +14,7 @@ class TransactionSunburstWidget(BaseWidget):
         self.df["effective_amount"] = pd.to_numeric(
             self.df["effective_amount"], errors="coerce"
         )
-        self.df = self.df.dropna(subset=["effective_amount"])  # TODO: Check the warning
+        self.df = self.df.dropna(subset=["effective_amount"])
 
         self.df["category_name"] = self.df["category_name"].fillna("None")
         self.df["subcategory_name"] = self.df["subcategory_name"].fillna("None")
@@ -33,10 +33,8 @@ class TransactionSunburstWidget(BaseWidget):
             "effective_amount"
         ].abs()
 
-        positive_colors = (
-            px.colors.qualitative.Prism
-        )  # TODO: Choose different scales, make it a settable constant?
-        negative_colors = px.colors.qualitative.Safe
+        # TODO: Also color th Category in the same way
+        subcategory_color_map = self.get_subcategory_color_map()
 
         positive_fig = None
         if not positive_df_grouped.empty:
@@ -45,8 +43,8 @@ class TransactionSunburstWidget(BaseWidget):
                 path=["category_name", "subcategory_name"],
                 values="effective_amount",
                 title="Incomes by Category",
-                color="category_name",
-                color_discrete_sequence=positive_colors,
+                color="subcategory_name",
+                color_discrete_map=subcategory_color_map,
             )
 
         negative_fig = None
@@ -56,8 +54,8 @@ class TransactionSunburstWidget(BaseWidget):
                 path=["category_name", "subcategory_name"],
                 values="effective_amount",
                 title="Expenses by Category",
-                color="category_name",
-                color_discrete_sequence=negative_colors,
+                color="subcategory_name",
+                color_discrete_map=subcategory_color_map,
             )
 
         return positive_fig, negative_fig
