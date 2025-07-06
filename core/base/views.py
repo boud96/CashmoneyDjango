@@ -37,7 +37,7 @@ def get_amount(row: pd.Series, csv_map: CSVMapping) -> float:
     amount = row.get(csv_map.amount)
     if isinstance(amount, str):
         amount = amount.replace(",", ".").replace(" ", "")
-    return float(amount)
+    return float(amount)  # TODO: Handle missing amount (add transaction to skipped?)
 
 
 def get_currency(row: pd.Series, csv_map: CSVMapping) -> str:
