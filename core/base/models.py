@@ -63,6 +63,7 @@ class Transaction(AbstractBaseModel):
             "show_ignored",
             "recalculate_by_owners",
             "bank_account",
+            "tag",
         ]
 
         date_from = filter_params.get("date_from")
@@ -72,6 +73,7 @@ class Transaction(AbstractBaseModel):
         show_ignored = filter_params.get("show_ignored", False)
         recalculate_by_owners = filter_params.get("recalculate_by_owners", False)
         bank_accounts = filter_params.get("bank_account")
+        tags = filter_params.get("tag")
 
         extra_keys = [key for key in filter_params if key not in expected_filter_keys]
 
@@ -111,6 +113,15 @@ class Transaction(AbstractBaseModel):
                 )
             else:
                 query &= Q(bank_account__in=bank_accounts)
+
+        if tags is not None:
+            if "None" in tags:
+                tags = [tag for tag in tags if tag != "None"]
+                query &= Q(transactiontag__tag__in=tags) | Q(
+                    transactiontag__tag__isnull=True
+                )
+            else:
+                query &= Q(transactiontag__tag__in=tags)
 
         field_names = cls.get_field_names()
         related_fields = [

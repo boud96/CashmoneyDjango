@@ -6,6 +6,7 @@ from widgets.filters.bank_account import BankAccountFilter
 from widgets.filters.by_owners import RecalculateAmountsByOwnersFilter
 from widgets.filters.category import CategoryFilter
 from widgets.filters.date import DateFilter
+from widgets.filters.tag import TagFilter
 from widgets.filters.ignored import ShowIgnoredFilter
 from widgets.filters.manager import FilterManager
 from widgets.stats.bar_chart import BarChartWidget
@@ -18,7 +19,7 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "core.settings"
 django.setup()
 
 # TODO: Figure out proper import
-from core.base.models import Transaction, Category, Subcategory, BankAccount  # noqa
+from core.base.models import Transaction, Category, Subcategory, BankAccount, Tag  # noqa
 
 
 def main():
@@ -50,6 +51,9 @@ def main():
     # Add BankAccountFilter  # TODO: Remove None?
     bank_account_filter = BankAccountFilter(BankAccount, label="Select Bank Accounts")
     filter_manager.add_filter("bank_account", bank_account_filter)
+
+    tag_filter = TagFilter(Tag, label="Select Tags")
+    filter_manager.add_filter("tag", tag_filter)
 
     # Place all widgets in the sidebar
     filter_manager.place_widgets(sidebar=True)
