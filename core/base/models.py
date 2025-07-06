@@ -256,7 +256,10 @@ class Keyword(AbstractBaseModel):
 
 
 def get_default_bank_account():
-    return BankAccount.objects.first().id  # Or another way to get a valid instance
+    bank_account = BankAccount.objects.first()
+    if bank_account:
+        return bank_account.id
+    return None
 
 
 class CSVMapping(AbstractBaseModel):
