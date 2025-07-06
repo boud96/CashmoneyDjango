@@ -15,6 +15,7 @@ class DataFrameWidget(BaseWidget):
     MY_NOTE_COL = "my_note"
     OTHER_NOTE_COL = "other_note"
     AMOUNT_COL = "effective_amount"
+    TAGS_COL = "tags"
     WANT_NEED_INVESTMENT_COL = "want_need_investment"
 
     COLUMN_DISPLAY_NAMES = {
@@ -27,6 +28,7 @@ class DataFrameWidget(BaseWidget):
         MY_NOTE_COL: "My Note",
         OTHER_NOTE_COL: "Other Note",
         AMOUNT_COL: "Amount",
+        TAGS_COL: "Tags",
         WANT_NEED_INVESTMENT_COL: "W / N / I",
     }
 
@@ -134,6 +136,7 @@ class DataFrameWidget(BaseWidget):
             self.ACCOUNT_COL,
             self.WANT_NEED_INVESTMENT_COL,
             self.AMOUNT_COL,
+            self.TAGS_COL,
             self.COUNTERPARTY_COL,
             self.COUNTERPARTY_NOTE_COL,
             self.MY_NOTE_COL,

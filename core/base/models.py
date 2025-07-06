@@ -1,6 +1,7 @@
 import uuid
 
 import pandas as pd
+from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
 from django.db.models import Q, QuerySet, F, ExpressionWrapper, DecimalField
 from multiselectfield import MultiSelectField
@@ -132,6 +133,9 @@ class Transaction(AbstractBaseModel):
             "account_name": F("bank_account__account_name"),
             "owners": F("bank_account__owners"),
             "effective_amount": effective_amount,
+            "tags": StringAgg(
+                "transactiontag__tag__name", delimiter=", ", distinct=True
+            ),
         }
 
         transactions = (
@@ -145,6 +149,7 @@ class Transaction(AbstractBaseModel):
                 "account_name",
                 "amount",
                 "effective_amount",
+                "tags",
             )
         ).order_by("-date_of_transaction")
 
