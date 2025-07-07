@@ -313,7 +313,8 @@ def recategorize_transactions(request):
             uncategorized = []
 
             for transaction in transactions:
-                lookup_str = f"{transaction.my_note}{transaction.other_note}{transaction.counterparty_note}{transaction.counterparty_name}"
+                # TODO: Implement recatoegorization by CVSMapping fields like in the import
+                lookup_str = f"{transaction.my_note}{transaction.other_note}{transaction.counterparty_note}{transaction.counterparty_name}{transaction.counterparty_account_number}"
                 matching_keywords = get_matching_keyword_objs(lookup_str)
 
                 subcategory = None
