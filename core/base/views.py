@@ -115,6 +115,18 @@ def get_counterparty_name(row, csv_map: CSVMapping) -> str:
     return row.get(csv_map.counterparty_name)
 
 
+def create_categorization_string(transaction_data: dict, csv_map: CSVMapping):
+    categorization_parts = []
+    for field_name in csv_map.categorization_fields:
+        value = transaction_data.get(field_name)
+        if value:
+            categorization_parts.append(str(value))
+
+    categorization_string = " | ".join(categorization_parts)
+
+    return categorization_string
+
+
 @csrf_exempt  # TODO: Make this view secure and stuff
 def import_transactions(request):
     if request.method == "POST":
@@ -172,27 +184,6 @@ def import_transactions(request):
 
                 subcategory = None
                 want_need_investment = None
-                # TODO: make lookup string settable on the CSVMapping level
-                lookup_str = (
-                    f"{my_note} {other_note} {counterparty_note} {counterparty_name}"
-                )
-                matching_keywords = get_matching_keyword_objs(lookup_str)
-
-                is_category_overlap = False
-                is_uncategorized = False
-                if len(matching_keywords) == 1:
-                    subcategory = matching_keywords[0].subcategory
-                    want_need_investment = matching_keywords[0].want_need_investment
-                elif len(matching_keywords) > 1:
-                    is_category_overlap = True
-                else:
-                    is_uncategorized = True
-
-                ignore = matching_keywords[0].ignore if matching_keywords else False
-                if BankAccount.objects.filter(
-                    account_number=counterparty_account_number
-                ).exists():
-                    ignore = True
 
                 transaction_data = {
                     "original_id": original_id,
@@ -212,8 +203,30 @@ def import_transactions(request):
                     "counterparty_name": counterparty_name,
                     "subcategory": subcategory,
                     "want_need_investment": want_need_investment,
-                    "ignore": ignore,
                 }
+                categorization_string = create_categorization_string(
+                    transaction_data, csv_map
+                )
+
+                matching_keywords = get_matching_keyword_objs(categorization_string)
+
+                is_category_overlap = False
+                is_uncategorized = False
+                if len(matching_keywords) == 1:
+                    subcategory = matching_keywords[0].subcategory
+                    want_need_investment = matching_keywords[0].want_need_investment
+                elif len(matching_keywords) > 1:
+                    is_category_overlap = True
+                else:
+                    is_uncategorized = True
+
+                ignore = matching_keywords[0].ignore if matching_keywords else False
+                if BankAccount.objects.filter(
+                    account_number=counterparty_account_number
+                ).exists():
+                    ignore = True
+
+                transaction_data.update({"ignore": ignore})
 
                 # Replace each value that is "" with None
                 transaction_data = {
