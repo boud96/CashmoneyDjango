@@ -87,7 +87,9 @@ def get_transaction_type(row: pd.Series, csv_map: CSVMapping) -> str:
     return row.get(csv_map.transaction_type)
 
 
-def get_counterparty_account_number(row: pd.Series, csv_map: CSVMapping) -> str:
+def get_counterparty_account_number_with_bank_code(
+    row: pd.Series, csv_map: CSVMapping
+) -> str:
     """
     Get the counterparty account number from the row.
     If the bank code is provided, return the bank code and account number together.
@@ -163,8 +165,8 @@ def import_transactions(request):
                 specific_symbol = get_specific_symbol(row, csv_map)
                 variable_symbol = get_variable_symbol(row, csv_map)
                 transaction_type = get_transaction_type(row, csv_map)
-                counterparty_account_number = get_counterparty_account_number(
-                    row, csv_map
+                counterparty_account_number = (
+                    get_counterparty_account_number_with_bank_code(row, csv_map)
                 )
                 counterparty_name = get_counterparty_name(row, csv_map)
 
