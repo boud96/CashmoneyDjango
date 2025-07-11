@@ -1,6 +1,5 @@
-import os
 import streamlit as st
-import django
+from app import app_launcher
 
 from widgets.filters.bank_account import BankAccountFilter
 from widgets.filters.by_owners import RecalculateAmountsByOwnersFilter
@@ -15,14 +14,17 @@ from widgets.stats.category_sunburst import TransactionSunburstWidget
 from widgets.stats.wni_sunburst import TransactionWNIWidget
 from widgets.stats.overview_stats import OverviewStatsWidget
 
-os.environ["DJANGO_SETTINGS_MODULE"] = "core.settings"
-django.setup()
-
-# TODO: Figure out proper import
-from core.base.models import Transaction, Category, Subcategory, BankAccount, Tag  # noqa
-
 
 def main():
+    models = app_launcher.get_models()
+    Transaction = models[
+        "Transaction"
+    ]  # TODO: Refactor as models_transaction introduce in the app object
+    Category = models["Category"]
+    Subcategory = models["Subcategory"]
+    BankAccount = models["BankAccount"]
+    Tag = models["Tag"]
+
     st.set_page_config(page_title="Cashmoney", layout="wide", page_icon="")
 
     # Initialize the FilterManager

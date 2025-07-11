@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from django.db.models import QuerySet
 
+from core.base.models import Transaction
 from widgets.stats.base_widget import BaseWidget
 
 
@@ -32,7 +33,7 @@ class DataFrameWidget(BaseWidget):
         WANT_NEED_INVESTMENT_COL: "W / N / I",
     }
 
-    def __init__(self, transactions: QuerySet):
+    def __init__(self, transactions: QuerySet[Transaction]):
         super().__init__(transactions)
         self.transactions = transactions
         self._df = None

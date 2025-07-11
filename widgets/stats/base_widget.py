@@ -2,21 +2,22 @@ from functools import cached_property
 import pandas as pd
 from django.db.models import QuerySet
 import plotly.express as px
+from pandas import DataFrame
+
+from core.base.models import Transaction
 
 
 class BaseWidget:
-    def __init__(self, transactions: QuerySet):
+    def __init__(self, transactions: QuerySet[Transaction] | list[str]):
         self.transactions = transactions
 
     @cached_property
-    def df(self):
+    def df(self) -> DataFrame:
         """Convert the QuerySet to a DataFrame."""
         if not self.transactions.exists():
             return pd.DataFrame()
 
-        # Convert QuerySet to DataFrame, keeping all columns
         data = pd.DataFrame.from_records(self.transactions.values())
-
         return data
 
     @staticmethod

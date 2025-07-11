@@ -56,6 +56,7 @@ class Transaction(AbstractBaseModel):
         # TODO: Add more filters
         # If filter is used but not added here, raise an error
         expected_filter_keys = [
+            "id__in",
             "date_from",
             "date_to",
             "category",
@@ -66,6 +67,7 @@ class Transaction(AbstractBaseModel):
             "tag",
         ]
 
+        id__in = filter_params.get("id__in")
         date_from = filter_params.get("date_from")
         date_to = filter_params.get("date_to")
         categories = filter_params.get("category")
@@ -81,6 +83,8 @@ class Transaction(AbstractBaseModel):
             raise ValueError(f"Unexpected filter parameters: {', '.join(extra_keys)}")
 
         query = Q()
+        if id__in:
+            query &= Q(id__in=id__in)
         if date_from is not None:
             query &= Q(date_of_transaction__gte=date_from)
         if date_to is not None:
@@ -323,6 +327,7 @@ class CSVMapping(AbstractBaseModel):
         "other_note",
         "counterparty_note",
         "counterparty_name",
+        "counterparty_account_number",
         "transaction_type",
         "variable_symbol",
         "specific_symbol",

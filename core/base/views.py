@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 import pandas as pd
+from django.forms import model_to_dict
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -156,7 +157,8 @@ def import_transactions(request):
 
             # Import data into the Transaction model
             created = []
-            duplicates = []
+            already_imported = []  # Based on original_id
+            possible_duplicates = []  # No original_id but seems to be the same transaction
             category_overlap = []
             uncategorized = []
             for index, row in df.iterrows():
@@ -237,7 +239,13 @@ def import_transactions(request):
                 ).exists():
                     ignore = True
 
-                transaction_data.update({"ignore": ignore})
+                transaction_data.update(
+                    {
+                        "subcategory": subcategory,
+                        "want_need_investment": want_need_investment,
+                        "ignore": ignore,
+                    }
+                )
 
                 # Replace each value that is "" with None
                 transaction_data = {
@@ -264,26 +272,38 @@ def import_transactions(request):
                     ).exists()
 
                 if duplicate_exists:
-                    duplicates.append(str(transaction))
+                    if original_id:
+                        already_imported.append(transaction)
+                        continue
+                    possible_duplicates.append(transaction)
                     continue
+
                 if is_category_overlap:
-                    category_overlap.append(str(transaction))
+                    category_overlap.append(transaction)
                 if is_uncategorized:
                     uncategorized.append(str(transaction))
 
                 created.append(transaction)
 
             Transaction.objects.bulk_create(created)
+            crated_transaction_ids = [transaction.pk for transaction in created]
+            already_imported_ids = [transaction.pk for transaction in already_imported]
+            possible_duplicates_dict_list = [
+                model_to_dict(transaction) for transaction in possible_duplicates
+            ]
+            category_overlap_dict_list = [
+                model_to_dict(transaction) for transaction in category_overlap
+            ]
 
             return JsonResponse(
                 {
                     "loaded": len(df),
                     "created": {
                         "message": f"Succesfully imported {len(created)} transactions",
-                        "transactions": [str(t) for t in created],
+                        "transactions": crated_transaction_ids,
                         "category_overlap": {
                             "message": f"Uncategorized {len(category_overlap)} transactions due to category overlap",
-                            "transactions": category_overlap,
+                            "transactions": category_overlap_dict_list,
                         },
                         "uncategorized": {
                             "message": f"Uncategorized {len(uncategorized)} transactions due to no matching keywords",
@@ -291,8 +311,19 @@ def import_transactions(request):
                         },
                     },
                     "skipped": {
-                        "message": f"Skipped {len(duplicates)} transactions due to duplicates",
-                        "transactions": duplicates,
+                        "message": f"Skipped {len(already_imported) + len(possible_duplicates)} transactions",
+                        "already_imported": {
+                            "message": f"Skipped {len(already_imported)} transactions due to duplicates",
+                            "transactions": already_imported_ids,
+                        },
+                        "possible_duplicates": {
+                            "message": f"Skipped {len(possible_duplicates)} possible duplicates without the original transaction ID. Check manually",
+                            "transactions": possible_duplicates_dict_list,
+                        },
+                        "errors": {
+                            "message": "Skipped __TODO__ transactions due to errors",
+                            # TODO: Retrieve all errors to display, don't forget to add to the skipped message
+                        },
                     },  # TODO: whole loop into Try-Except, append other reasons to generic skipped
                     # add other skip types if needed
                 },
@@ -307,7 +338,7 @@ def import_transactions(request):
 
 
 @csrf_exempt  # TODO: Secure this view appropriately
-def recategorize_transactions(request):
+def recategorize_transactions(request):  # TODO: Currently USELESS. Rewrite ASAP
     if request.method == "POST":
         try:
             recategorize_assigned = (
