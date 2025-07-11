@@ -20,17 +20,18 @@ def render_success_response(json_response: dict):
         json_response.get("created").get("uncategorized").get("message")
     )
 
-    created_queryset = Transaction.get_transactions_from_db(
-        filter_params={"id__in": created_id_list, "show_ignored": True}
-    )
-    st.write("CREATED TRANSACTIONS")
-    DataFrameWidget(created_queryset).place_widget()
+    if created_id_list:
+        created_queryset = Transaction.get_transactions_from_db(
+            filter_params={"id__in": created_id_list, "show_ignored": True}
+        )
+        st.write("CREATED TRANSACTIONS")
+        DataFrameWidget(created_queryset).place_widget()
 
-    st.write(created_message)
-    st.write("of which")
-    st.write(category_overlap_message)
-    st.write("and")
-    st.write(uncategorized_message)
+        st.write(created_message)
+        st.write("of which")
+        st.write(category_overlap_message)
+        st.write("and")
+        st.write(uncategorized_message)
 
     st.write("SKIPPED TRANSACTIONS")
     skipped_message = json_response.get("skipped").get("message")
