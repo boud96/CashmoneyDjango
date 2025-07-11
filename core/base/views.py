@@ -216,7 +216,18 @@ def import_transactions(request):
                     subcategory = matching_keywords[0].subcategory
                     want_need_investment = matching_keywords[0].want_need_investment
                 elif len(matching_keywords) > 1:
-                    is_category_overlap = True
+                    for i in matching_keywords:
+                        if (
+                            i.subcategory != matching_keywords[0].subcategory
+                            or i.want_need_investment
+                            != matching_keywords[0].want_need_investment
+                        ):  # If all matched keywords have the same subcategories and wni, it's not really an overlap
+                            is_category_overlap = True
+                            break
+
+                    if not is_category_overlap:
+                        subcategory = matching_keywords[0].subcategory
+                        want_need_investment = matching_keywords[0].want_need_investment
                 else:
                     is_uncategorized = True
 
