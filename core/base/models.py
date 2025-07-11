@@ -1,6 +1,7 @@
 import uuid
 
 import pandas as pd
+from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
 from django.db.models import Q, QuerySet, F, ExpressionWrapper, DecimalField
 from multiselectfield import MultiSelectField
@@ -55,6 +56,7 @@ class Transaction(AbstractBaseModel):
         # TODO: Add more filters
         # If filter is used but not added here, raise an error
         expected_filter_keys = [
+            "id__in",
             "date_from",
             "date_to",
             "category",
@@ -62,8 +64,10 @@ class Transaction(AbstractBaseModel):
             "show_ignored",
             "recalculate_by_owners",
             "bank_account",
+            "tag",
         ]
 
+        id__in = filter_params.get("id__in")
         date_from = filter_params.get("date_from")
         date_to = filter_params.get("date_to")
         categories = filter_params.get("category")
@@ -71,6 +75,7 @@ class Transaction(AbstractBaseModel):
         show_ignored = filter_params.get("show_ignored", False)
         recalculate_by_owners = filter_params.get("recalculate_by_owners", False)
         bank_accounts = filter_params.get("bank_account")
+        tags = filter_params.get("tag")
 
         extra_keys = [key for key in filter_params if key not in expected_filter_keys]
 
@@ -78,6 +83,8 @@ class Transaction(AbstractBaseModel):
             raise ValueError(f"Unexpected filter parameters: {', '.join(extra_keys)}")
 
         query = Q()
+        if id__in:
+            query &= Q(id__in=id__in)
         if date_from is not None:
             query &= Q(date_of_transaction__gte=date_from)
         if date_to is not None:
@@ -111,6 +118,15 @@ class Transaction(AbstractBaseModel):
             else:
                 query &= Q(bank_account__in=bank_accounts)
 
+        if tags is not None:
+            if "None" in tags:
+                tags = [tag for tag in tags if tag != "None"]
+                query &= Q(transactiontag__tag__in=tags) | Q(
+                    transactiontag__tag__isnull=True
+                )
+            else:
+                query &= Q(transactiontag__tag__in=tags)
+
         field_names = cls.get_field_names()
         related_fields = [
             "subcategory__name",
@@ -132,6 +148,9 @@ class Transaction(AbstractBaseModel):
             "account_name": F("bank_account__account_name"),
             "owners": F("bank_account__owners"),
             "effective_amount": effective_amount,
+            "tags": StringAgg(
+                "transactiontag__tag__name", delimiter=", ", distinct=True
+            ),
         }
 
         transactions = (
@@ -145,6 +164,7 @@ class Transaction(AbstractBaseModel):
                 "account_name",
                 "amount",
                 "effective_amount",
+                "tags",
             )
         ).order_by("-date_of_transaction")
 
@@ -307,6 +327,7 @@ class CSVMapping(AbstractBaseModel):
         "other_note",
         "counterparty_note",
         "counterparty_name",
+        "counterparty_account_number",
         "transaction_type",
         "variable_symbol",
         "specific_symbol",
@@ -315,7 +336,7 @@ class CSVMapping(AbstractBaseModel):
     CATEGORIZATION_CHOICES = [
         (field, field.replace("_", " ").title()) for field in ALLOWED_FIELDS
     ]
-    categorization_fields = MultiSelectField(
+    categorization_fields = MultiSelectField(  # TODO: Implement in the views
         choices=CATEGORIZATION_CHOICES,
         blank=True,
         help_text="Select fields you want to use for categorization.",

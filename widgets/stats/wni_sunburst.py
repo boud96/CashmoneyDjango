@@ -1,5 +1,6 @@
 from django.db.models import QuerySet
 
+from core.base.models import Transaction
 from widgets.stats.base_widget import BaseWidget
 import pandas as pd
 import streamlit as st
@@ -7,7 +8,7 @@ import plotly.express as px
 
 
 class TransactionWNIWidget(BaseWidget):
-    def __init__(self, transactions: QuerySet):
+    def __init__(self, transactions: QuerySet[Transaction]):
         super().__init__(transactions)
 
     def preprocess_data(self):

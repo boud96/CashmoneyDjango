@@ -1,7 +1,55 @@
 import streamlit as st
 import requests
-from core.base.models import CSVMapping, BankAccount
+from core.base.models import CSVMapping, BankAccount, Transaction
 from core.urls import URLConstant
+from widgets.stats.dataframe import DataFrameWidget
+
+
+def render_success_response(json_response: dict):
+    st.success("Data submitted successfully!")
+
+    st.json(json_response)  # TODO: Remove, showing for Debug
+    created_message = json_response.get("created").get("message")
+    created_id_list = json_response.get("created").get("transactions")
+
+    category_overlap_message = (
+        json_response.get("created").get("category_overlap").get("message")
+    )
+
+    uncategorized_message = (
+        json_response.get("created").get("uncategorized").get("message")
+    )
+
+    if created_id_list:
+        created_queryset = Transaction.get_transactions_from_db(
+            filter_params={"id__in": created_id_list, "show_ignored": True}
+        )
+        st.write("CREATED TRANSACTIONS")
+        DataFrameWidget(created_queryset).place_widget()
+
+        st.write(created_message)
+        st.write("of which")
+        st.write(category_overlap_message)
+        st.write("and")
+        st.write(uncategorized_message)
+
+    st.write("SKIPPED TRANSACTIONS")
+    skipped_message = json_response.get("skipped").get("message")
+    st.write(skipped_message)
+    st.write("of which")
+    already_imported_message = (
+        json_response.get("skipped").get("already_imported").get("message")
+    )
+    st.write(already_imported_message)
+    st.write("and")
+    possible_duplicates_message = (
+        json_response.get("skipped").get("possible_duplicates").get("message")
+    )
+    st.write(possible_duplicates_message)
+    st.write("and")
+    errors_message = json_response.get("skipped").get("errors").get("message")
+    st.write(errors_message)
+
 
 import_url = (
     "http://127.0.0.1:8000/" + URLConstant.IMPORT_TRANSACTIONS
@@ -44,8 +92,7 @@ with st.form("import_csv_form"):
                 response = requests.post(import_url, data=payload, files=files)
 
                 if response.status_code == 201:
-                    st.success("Data submitted successfully!")
-                    st.json(response.json())
+                    render_success_response(response.json())
                 else:
                     st.error(
                         f"Failed to submit data! Status code: {response.status_code}"
