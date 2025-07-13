@@ -133,8 +133,9 @@ def create_categorization_string(transaction_data: dict, csv_map: CSVMapping):
 
 @method_decorator(csrf_exempt, name="dispatch")  # TODO: Make this view secure and stuff
 class ImportTransactionsView(View):
-    def _prapare_df(
-        self, csv_map: CSVMapping, csv_file: InMemoryUploadedFile
+    @staticmethod
+    def _prepare_df(
+        csv_map: CSVMapping, csv_file: InMemoryUploadedFile
     ) -> pd.DataFrame:
         # Trailing delimiters handle - without it, it sometimes throws an error
         raw_data = csv_file.read().decode(csv_map.encoding)
@@ -157,8 +158,9 @@ class ImportTransactionsView(View):
 
         return df
 
+    @staticmethod
     def _prepare_transaction_dict(
-        self, row: pd.Series, csv_map: CSVMapping, bank_account_id: str
+        row: pd.Series, csv_map: CSVMapping, bank_account_id: str
     ) -> dict:
         original_id = get_original_id(row, csv_map)
         date_of_submission = get_date_of_submission(row, csv_map)
@@ -204,7 +206,7 @@ class ImportTransactionsView(View):
             bank_account_id = request.POST.get("bank_account_id")
             csv_file = request.FILES.get("csv_file")
 
-            df = self._prapare_df(csv_map, csv_file)
+            df = self._prepare_df(csv_map, csv_file)
 
             # Import data into the Transaction model
             created = []
