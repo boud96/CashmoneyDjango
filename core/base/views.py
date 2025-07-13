@@ -286,44 +286,13 @@ class ImportTransactionsView(View):
                 matching_keywords = self._get_matching_keyword_objs(
                     categorization_string
                 )
-
-                subcategory = None
-                want_need_investment = None
-
-                is_category_overlap = False
-                is_uncategorized = False
-                if len(matching_keywords) == 1:
-                    subcategory = matching_keywords[0].subcategory
-                    want_need_investment = matching_keywords[0].want_need_investment
-                elif len(matching_keywords) > 1:
-                    for i in matching_keywords:
-                        if (
-                            i.subcategory != matching_keywords[0].subcategory
-                            or i.want_need_investment
-                            != matching_keywords[0].want_need_investment
-                        ):  # If all matched keywords have the same subcategories and wni, it's not really an overlap
-                            is_category_overlap = True
-                            break
-
-                    if not is_category_overlap:
-                        subcategory = matching_keywords[0].subcategory
-                        want_need_investment = matching_keywords[0].want_need_investment
-                else:
-                    is_uncategorized = True
-
-                ignore = matching_keywords[0].ignore if matching_keywords else False
-                if BankAccount.objects.filter(
-                    account_number=transaction_data.get("counterparty_account_number")
-                ).exists():
-                    ignore = True
-
-                transaction_data.update(
-                    {
-                        TransactionFieldsConstants.SUBCATEGORY: subcategory,
-                        TransactionFieldsConstants.WANT_NEED_INVESTMENT: want_need_investment,
-                        TransactionFieldsConstants.IGNORE: ignore,
-                    }
+                categorization_dict, is_category_overlap, is_uncategorized = (
+                    self._create_categorization_dict(
+                        matching_keywords, transaction_data
+                    )
                 )
+
+                transaction_data.update(categorization_dict)
 
                 # Replace each value that is "" with None
                 transaction_data = {
@@ -414,6 +383,58 @@ class ImportTransactionsView(View):
         except Exception as e:
             print(traceback.format_exc())  # TODO: DEBUG remove
             return JsonResponse({"error": str(e)}, status=500)
+
+    @staticmethod
+    def _create_categorization_dict(
+        matching_keywords: QuerySet[Keyword], transaction_data: dict
+    ) -> (dict, bool, bool):
+        # TODO: Rethink - the 3 returns suck
+
+        subcategory = None
+        want_need_investment = None
+
+        is_category_overlap = False
+        is_uncategorized = False
+        ignore = False
+
+        if len(matching_keywords) == 1:
+            subcategory = matching_keywords[0].subcategory
+            want_need_investment = matching_keywords[0].want_need_investment
+            ignore = matching_keywords[0].ignore if matching_keywords else False
+
+        elif len(matching_keywords) > 1:
+            for i in matching_keywords:
+                if (
+                    # If all matched keywords have the same subcategories, wni and ignore,
+                    # just pick the first occurrence since they are the same
+                    i.subcategory != matching_keywords[0].subcategory
+                    or i.want_need_investment
+                    != matching_keywords[0].want_need_investment
+                    or i.ignore != matching_keywords[0].ignore
+                ):
+                    is_category_overlap = True
+                    break
+
+            if not is_category_overlap:
+                subcategory = matching_keywords[0].subcategory
+                want_need_investment = matching_keywords[0].want_need_investment
+        else:
+            is_uncategorized = True
+
+        if BankAccount.objects.filter(
+            account_number=transaction_data.get(
+                TransactionFieldsConstants.COUNTERPARTY_ACCOUNT_NUMBER
+            )
+        ).exists():
+            ignore = True
+
+        categorization_dict = {
+            TransactionFieldsConstants.SUBCATEGORY: subcategory,
+            TransactionFieldsConstants.WANT_NEED_INVESTMENT: want_need_investment,
+            TransactionFieldsConstants.IGNORE: ignore,
+        }
+
+        return categorization_dict, is_category_overlap, is_uncategorized
 
 
 # TODO: Rewrite / implement in the View above ASAP
