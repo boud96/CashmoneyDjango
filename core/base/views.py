@@ -332,7 +332,9 @@ class ImportTransactionsView(View):
 
                 transaction = Transaction(**transaction_data)
 
-                original_id = transaction_data.get("original_id")
+                original_id = transaction_data.get(
+                    TransactionFieldsConstants.ORIGINAL_ID
+                )
                 if original_id:
                     duplicate_exists = Transaction.objects.filter(
                         original_id=transaction.original_id,
