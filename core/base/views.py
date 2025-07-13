@@ -417,9 +417,12 @@ class ImportTransactionsView(View):
 
 
 # TODO: Rewrite / implement in the View above ASAP
-# @csrf_exempt  # TODO: Secure this view appropriately
-# def recategorize_transactions(request):  # TODO: Currently USELESS. Rewrite ASAP
-#     if request.method == "POST":
+@csrf_exempt  # TODO: Secure this view appropriately
+def recategorize_transactions(request):  # TODO: Currently USELESS. Rewrite ASAP
+    if request.method == "POST":
+        pass
+
+
 #         try:
 #             recategorize_assigned = (
 #                 request.POST.get("recategorize_assigned", "false").lower() == "true"
