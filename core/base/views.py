@@ -6,14 +6,14 @@ from typing import Optional
 import pandas as pd
 from django.core.files.uploadedfile import UploadedFile
 from django.core.handlers.wsgi import WSGIRequest
+from django.db.models import QuerySet
 from django.forms import model_to_dict
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import CSVMapping, Transaction, BankAccount
-from core.base.utils.utils import get_matching_keyword_objs
+from .models import CSVMapping, Transaction, BankAccount, Keyword
 
 
 class TransactionFieldsConstants:
@@ -222,6 +222,44 @@ class ImportTransactionsView(View):
 
         return transaction_data
 
+    def _get_matching_keyword_objs(
+        self, categorization_string: str
+    ) -> QuerySet[Keyword]:
+        categorization_string = categorization_string.lower().replace(" ", "")
+
+        include_keywords = Keyword.objects.none()
+        exclude_keywords = Keyword.objects.none()
+        matching_keywords = Keyword.objects.none()
+
+        for keyword in Keyword.objects.all().order_by("value"):
+            all_include_rules = []
+            for include_rule in keyword.rules.get("include"):
+                all_include_rules.append(include_rule.lower().replace(" ", ""))
+
+            all_exclude_rules = []
+            for exclude_rule in keyword.rules.get("exclude"):
+                all_exclude_rules.append(exclude_rule.lower().replace(" ", ""))
+
+            if all(
+                include_rule in categorization_string
+                for include_rule in all_include_rules
+            ):
+                include_keywords = include_keywords | Keyword.objects.filter(
+                    id=keyword.id
+                )
+
+            if any(
+                exclude_rule in categorization_string
+                for exclude_rule in all_exclude_rules
+            ):
+                exclude_keywords = exclude_keywords | Keyword.objects.filter(
+                    id=keyword.id
+                )
+
+            matching_keywords = include_keywords.exclude(id__in=exclude_keywords)
+
+        return matching_keywords
+
     def post(self, request: WSGIRequest) -> JsonResponse:
         try:
             csv_map = CSVMapping.objects.get(id=request.POST.get("csv_map_id"))
@@ -248,7 +286,9 @@ class ImportTransactionsView(View):
                 categorization_string = create_categorization_string(
                     transaction_data, csv_map
                 )
-                matching_keywords = get_matching_keyword_objs(categorization_string)
+                matching_keywords = self._get_matching_keyword_objs(
+                    categorization_string
+                )
 
                 subcategory = None
                 want_need_investment = None
@@ -377,112 +417,113 @@ class ImportTransactionsView(View):
             return JsonResponse({"error": str(e)}, status=500)
 
 
-@csrf_exempt  # TODO: Secure this view appropriately
-def recategorize_transactions(request):  # TODO: Currently USELESS. Rewrite ASAP
-    if request.method == "POST":
-        try:
-            recategorize_assigned = (
-                request.POST.get("recategorize_assigned", "false").lower() == "true"
-            )
-
-            if recategorize_assigned:
-                transactions = Transaction.objects.all()
-            else:
-                transactions = Transaction.objects.filter(subcategory__isnull=True)
-
-            updated_transactions = []
-            category_overlap = []
-            uncategorized = []
-
-            for transaction in transactions:
-                # TODO: Implement recatoegorization by CVSMapping fields like in the import
-                lookup_str = f"{transaction.my_note}{transaction.other_note}{transaction.counterparty_note}{transaction.counterparty_name}{transaction.counterparty_account_number}"
-                matching_keywords = get_matching_keyword_objs(lookup_str)
-
-                subcategory = None
-                want_need_investment = None
-
-                is_category_overlap = False
-                if len(matching_keywords) == 1:
-                    subcategory = matching_keywords[0].subcategory
-                    want_need_investment = matching_keywords[0].want_need_investment
-                    updated_transactions.append(transaction)
-
-                elif (
-                    len(matching_keywords) > 1
-                ):  # TODO: Implement this to the import_transactions view
-                    first_subcategory = matching_keywords[0].subcategory
-                    first_want_need_investment = matching_keywords[
-                        0
-                    ].want_need_investment
-                    all_same = True
-                    for keyword in matching_keywords:
-                        if (
-                            keyword.subcategory != first_subcategory
-                            or keyword.want_need_investment
-                            != first_want_need_investment
-                        ):
-                            all_same = False
-                            break
-                    if all_same:
-                        subcategory = first_subcategory
-                        want_need_investment = first_want_need_investment
-                    else:
-                        is_category_overlap = True
-
-                else:
-                    uncategorized.append(str(transaction))
-                    continue
-
-                if is_category_overlap:
-                    category_overlap.append(str(transaction))
-                    continue
-
-                # TODO: check if behavior is correct
-                ignore = matching_keywords[0].ignore if matching_keywords else False
-                if BankAccount.objects.filter(
-                    account_number=transaction.counterparty_account_number
-                ).exists():
-                    ignore = True
-
-                transaction.subcategory = subcategory
-                transaction.want_need_investment = want_need_investment
-                transaction.ignore = ignore
-
-                updated_transactions.append(transaction)
-
-            Transaction.objects.bulk_update(
-                updated_transactions,
-                fields=["subcategory", "want_need_investment", "ignore"],
-            )
-
-            return JsonResponse(
-                {
-                    "loaded": {
-                        "message": f"Loaded {len(transactions)} transactions",
-                        "transactions": [str(t) for t in updated_transactions],
-                    },
-                    "updated": {
-                        "message": f"Updated {len(updated_transactions)} transactions",
-                        "transactions": [str(t) for t in updated_transactions],
-                    },
-                    "skipped": {
-                        "message": f"Skipped {len(category_overlap) + len(uncategorized)} transactions",
-                        "category_overlap": {
-                            "message": f"Overlapping categories for {len(category_overlap)} transactions",
-                            "transactions": category_overlap,
-                        },
-                        "uncategorized": {
-                            "message": f"Category not found for {len(uncategorized)} transactions",
-                            "transactions": uncategorized,
-                        },
-                    },
-                },
-                status=200,
-            )
-
-        except Exception as e:
-            print(traceback.format_exc())  # TODO: DEBUG remove
-            return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Invalid request method"}, status=405)
+# TODO: Rewrite / implement in the View above ASAP
+# @csrf_exempt  # TODO: Secure this view appropriately
+# def recategorize_transactions(request):  # TODO: Currently USELESS. Rewrite ASAP
+#     if request.method == "POST":
+#         try:
+#             recategorize_assigned = (
+#                 request.POST.get("recategorize_assigned", "false").lower() == "true"
+#             )
+#
+#             if recategorize_assigned:
+#                 transactions = Transaction.objects.all()
+#             else:
+#                 transactions = Transaction.objects.filter(subcategory__isnull=True)
+#
+#             updated_transactions = []
+#             category_overlap = []
+#             uncategorized = []
+#
+#             for transaction in transactions:
+#                 # TODO: Implement recatoegorization by CVSMapping fields like in the import
+#                 lookup_str = f"{transaction.my_note}{transaction.other_note}{transaction.counterparty_note}{transaction.counterparty_name}{transaction.counterparty_account_number}"
+#                 matching_keywords = get_matching_keyword_objs(lookup_str)
+#
+#                 subcategory = None
+#                 want_need_investment = None
+#
+#                 is_category_overlap = False
+#                 if len(matching_keywords) == 1:
+#                     subcategory = matching_keywords[0].subcategory
+#                     want_need_investment = matching_keywords[0].want_need_investment
+#                     updated_transactions.append(transaction)
+#
+#                 elif (
+#                     len(matching_keywords) > 1
+#                 ):  # TODO: Implement this to the import_transactions view
+#                     first_subcategory = matching_keywords[0].subcategory
+#                     first_want_need_investment = matching_keywords[
+#                         0
+#                     ].want_need_investment
+#                     all_same = True
+#                     for keyword in matching_keywords:
+#                         if (
+#                             keyword.subcategory != first_subcategory
+#                             or keyword.want_need_investment
+#                             != first_want_need_investment
+#                         ):
+#                             all_same = False
+#                             break
+#                     if all_same:
+#                         subcategory = first_subcategory
+#                         want_need_investment = first_want_need_investment
+#                     else:
+#                         is_category_overlap = True
+#
+#                 else:
+#                     uncategorized.append(str(transaction))
+#                     continue
+#
+#                 if is_category_overlap:
+#                     category_overlap.append(str(transaction))
+#                     continue
+#
+#                 # TODO: check if behavior is correct
+#                 ignore = matching_keywords[0].ignore if matching_keywords else False
+#                 if BankAccount.objects.filter(
+#                     account_number=transaction.counterparty_account_number
+#                 ).exists():
+#                     ignore = True
+#
+#                 transaction.subcategory = subcategory
+#                 transaction.want_need_investment = want_need_investment
+#                 transaction.ignore = ignore
+#
+#                 updated_transactions.append(transaction)
+#
+#             Transaction.objects.bulk_update(
+#                 updated_transactions,
+#                 fields=["subcategory", "want_need_investment", "ignore"],
+#             )
+#
+#             return JsonResponse(
+#                 {
+#                     "loaded": {
+#                         "message": f"Loaded {len(transactions)} transactions",
+#                         "transactions": [str(t) for t in updated_transactions],
+#                     },
+#                     "updated": {
+#                         "message": f"Updated {len(updated_transactions)} transactions",
+#                         "transactions": [str(t) for t in updated_transactions],
+#                     },
+#                     "skipped": {
+#                         "message": f"Skipped {len(category_overlap) + len(uncategorized)} transactions",
+#                         "category_overlap": {
+#                             "message": f"Overlapping categories for {len(category_overlap)} transactions",
+#                             "transactions": category_overlap,
+#                         },
+#                         "uncategorized": {
+#                             "message": f"Category not found for {len(uncategorized)} transactions",
+#                             "transactions": uncategorized,
+#                         },
+#                     },
+#                 },
+#                 status=200,
+#             )
+#
+#         except Exception as e:
+#             print(traceback.format_exc())  # TODO: DEBUG remove
+#             return JsonResponse({"error": str(e)}, status=500)
+#
+#     return JsonResponse({"error": "Invalid request method"}, status=405)
