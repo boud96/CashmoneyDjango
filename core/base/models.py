@@ -263,13 +263,38 @@ class TransactionTag(AbstractBaseModel):
         return f"{self.transaction} - {self.tag}"
 
 
+def get_default_keyword_rules():
+    return {
+        "include": [],
+        "exclude": [],
+    }
+
+
 class Keyword(AbstractBaseModel):
+    INCLUDE_RULE_KEY = "include"
+    EXCLUDE_RULE_KEY = "exclude"
+
     value = models.CharField(max_length=128, null=False, blank=False, unique=True)
+    rules = models.JSONField(
+        max_length=128, null=False, blank=True, default=get_default_keyword_rules
+    )
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE)
     want_need_investment = models.CharField(
         max_length=128, choices=Transaction.WNI_CHOICES, null=True, blank=True
     )
     ignore = models.BooleanField(default=False)
+
+    def get_include_rules(self):
+        return self.rules.get(self.INCLUDE_RULE_KEY, []) if self.rules else []
+
+    def get_exclude_rules(self):
+        return self.rules.get(self.EXCLUDE_RULE_KEY, []) if self.rules else []
+
+    def set_rules(self, include=None, exclude=None):
+        self.rules = {
+            self.INCLUDE_RULE_KEY: include or [],
+            self.EXCLUDE_RULE_KEY: exclude or [],
+        }
 
     def __str__(self):
         return f"{self.value} - {self.subcategory}"
