@@ -280,9 +280,6 @@ class ImportTransactionsView(View):
                     row, csv_map, bank_account_id
                 )
 
-                # TODO: Rework the Keyword model to use json with "include" and "exclude".
-                #  if all strings in "include" pass and no strings in "exclude"
-                #  pass the Keyword is assigned
                 categorization_string = create_categorization_string(
                     transaction_data, csv_map
                 )
