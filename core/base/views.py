@@ -4,8 +4,11 @@ from datetime import datetime
 from typing import Optional
 
 import pandas as pd
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.forms import model_to_dict
 from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import CSVMapping, Transaction, BankAccount
@@ -128,32 +131,80 @@ def create_categorization_string(transaction_data: dict, csv_map: CSVMapping):
     return categorization_string
 
 
-@csrf_exempt  # TODO: Make this view secure and stuff
-def import_transactions(request):
-    if request.method == "POST":
+@method_decorator(csrf_exempt, name="dispatch")  # TODO: Make this view secure and stuff
+class ImportTransactionsView(View):
+    def _prapare_df(
+        self, csv_map: CSVMapping, csv_file: InMemoryUploadedFile
+    ) -> pd.DataFrame:
+        # Trailing delimiters handle - without it, it sometimes throws an error
+        raw_data = csv_file.read().decode(csv_map.encoding)
+        cleaned_data = "\n".join(
+            line.rstrip(csv_map.delimiter) for line in raw_data.splitlines()
+        )
+
+        df = pd.read_csv(
+            io.StringIO(cleaned_data),
+            encoding=csv_map.encoding,
+            header=csv_map.header,
+            delimiter=csv_map.delimiter,
+            on_bad_lines="warn",
+            dtype=str,
+        ).fillna("")
+
+        # Clean up unwanted whitespaces
+        df.columns = df.columns.str.replace(r"\xa0", " ", regex=True)
+        df = df.map(lambda x: x.replace(r"\xa0", " ") if isinstance(x, str) else x)
+
+        return df
+
+    def _prepare_transaction_dict(
+        self, row: pd.Series, csv_map: CSVMapping, bank_account_id: str
+    ) -> dict:
+        original_id = get_original_id(row, csv_map)
+        date_of_submission = get_date_of_submission(row, csv_map)
+        date_of_transaction = get_date_of_transaction(row, csv_map)
+        amount = get_amount(row, csv_map)
+        currency = get_currency(row, csv_map)
+        bank_account = get_bank_account(bank_account_id)
+        my_note = get_my_note(row, csv_map)
+        other_note = get_other_note(row, csv_map)
+        counterparty_note = get_counterparty_note(row, csv_map)
+        constant_symbol = get_constant_symbol(row, csv_map)
+        specific_symbol = get_specific_symbol(row, csv_map)
+        variable_symbol = get_variable_symbol(row, csv_map)
+        transaction_type = get_transaction_type(row, csv_map)
+        counterparty_account_number = get_counterparty_account_number_with_bank_code(
+            row, csv_map
+        )
+        counterparty_name = get_counterparty_name(row, csv_map)
+
+        transaction_data = {
+            "original_id": original_id,
+            "date_of_submission": date_of_submission,
+            "date_of_transaction": date_of_transaction,
+            "amount": amount,
+            "currency": currency,
+            "bank_account": bank_account,
+            "my_note": my_note,
+            "other_note": other_note,
+            "counterparty_note": counterparty_note,
+            "constant_symbol": constant_symbol,
+            "specific_symbol": specific_symbol,
+            "variable_symbol": variable_symbol,
+            "transaction_type": transaction_type,
+            "counterparty_account_number": counterparty_account_number,
+            "counterparty_name": counterparty_name,
+        }
+
+        return transaction_data
+
+    def post(self, request):
         try:
             csv_map = CSVMapping.objects.get(id=request.POST.get("id"))
             bank_account_id = request.POST.get("bank_account_id")
             csv_file = request.FILES.get("csv_file")
 
-            # Trailing delimiters handle - without it, it sometimes throws an error
-            raw_data = csv_file.read().decode(csv_map.encoding)
-            cleaned_data = "\n".join(
-                line.rstrip(csv_map.delimiter) for line in raw_data.splitlines()
-            )
-
-            df = pd.read_csv(
-                io.StringIO(cleaned_data),
-                encoding=csv_map.encoding,
-                header=csv_map.header,
-                delimiter=csv_map.delimiter,
-                on_bad_lines="warn",
-                dtype=str,
-            ).fillna("")
-
-            # Clean up unwanted whitespaces
-            df.columns = df.columns.str.replace(r"\xa0", " ", regex=True)
-            df = df.map(lambda x: x.replace(r"\xa0", " ") if isinstance(x, str) else x)
+            df = self._prapare_df(csv_map, csv_file)
 
             # Import data into the Transaction model
             created = []
@@ -162,55 +213,21 @@ def import_transactions(request):
             category_overlap = []
             uncategorized = []
             for index, row in df.iterrows():
-                # TODO: Might rework the CSVMap model to have fields instead of one JSON
-
                 # TODO: If row fails, notify on frontend
-
-                original_id = get_original_id(row, csv_map)
-                date_of_submission = get_date_of_submission(row, csv_map)
-                date_of_transaction = get_date_of_transaction(row, csv_map)
-                amount = get_amount(row, csv_map)
-                currency = get_currency(row, csv_map)
-                bank_account = get_bank_account(bank_account_id)
-                my_note = get_my_note(row, csv_map)
-                other_note = get_other_note(row, csv_map)
-                counterparty_note = get_counterparty_note(row, csv_map)
-                constant_symbol = get_constant_symbol(row, csv_map)
-                specific_symbol = get_specific_symbol(row, csv_map)
-                variable_symbol = get_variable_symbol(row, csv_map)
-                transaction_type = get_transaction_type(row, csv_map)
-                counterparty_account_number = (
-                    get_counterparty_account_number_with_bank_code(row, csv_map)
+                transaction_data = self._prepare_transaction_dict(
+                    row, csv_map, bank_account_id
                 )
-                counterparty_name = get_counterparty_name(row, csv_map)
 
-                subcategory = None
-                want_need_investment = None
-
-                transaction_data = {
-                    "original_id": original_id,
-                    "date_of_submission": date_of_submission,
-                    "date_of_transaction": date_of_transaction,
-                    "amount": amount,
-                    "currency": currency,
-                    "bank_account": bank_account,
-                    "my_note": my_note,
-                    "other_note": other_note,
-                    "counterparty_note": counterparty_note,
-                    "constant_symbol": constant_symbol,
-                    "specific_symbol": specific_symbol,
-                    "variable_symbol": variable_symbol,
-                    "transaction_type": transaction_type,
-                    "counterparty_account_number": counterparty_account_number,
-                    "counterparty_name": counterparty_name,
-                    "subcategory": subcategory,
-                    "want_need_investment": want_need_investment,
-                }
+                # TODO: Rework the Keyword model to use json with "include" and "exclude".
+                #  if all strings in "include" pass and no strings in "exclude"
+                #  pass the Keyword is assigned
                 categorization_string = create_categorization_string(
                     transaction_data, csv_map
                 )
-
                 matching_keywords = get_matching_keyword_objs(categorization_string)
+
+                subcategory = None
+                want_need_investment = None
 
                 is_category_overlap = False
                 is_uncategorized = False
@@ -235,7 +252,7 @@ def import_transactions(request):
 
                 ignore = matching_keywords[0].ignore if matching_keywords else False
                 if BankAccount.objects.filter(
-                    account_number=counterparty_account_number
+                    account_number=transaction_data.get("counterparty_account_number")
                 ).exists():
                     ignore = True
 
@@ -254,6 +271,7 @@ def import_transactions(request):
 
                 transaction = Transaction(**transaction_data)
 
+                original_id = transaction_data.get("original_id")
                 if original_id:
                     duplicate_exists = Transaction.objects.filter(
                         original_id=transaction.original_id,
@@ -333,8 +351,6 @@ def import_transactions(request):
         except Exception as e:
             print(traceback.format_exc())  # TODO: DEBUG remove
             return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Invalid request method"}, status=405)
 
 
 @csrf_exempt  # TODO: Secure this view appropriately
