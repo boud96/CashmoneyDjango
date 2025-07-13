@@ -83,7 +83,7 @@ with st.form("import_csv_form"):
         else:
             try:
                 payload = {
-                    "id": str(selected_mapping.id),
+                    "csv_map_id": str(selected_mapping.id),
                     "bank_account_id": str(selected_bank_account.id),
                 }
                 files = {"csv_file": uploaded_file}

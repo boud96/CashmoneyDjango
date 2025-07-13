@@ -4,7 +4,8 @@ from datetime import datetime
 from typing import Optional
 
 import pandas as pd
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.files.uploadedfile import UploadedFile
+from django.core.handlers.wsgi import WSGIRequest
 from django.forms import model_to_dict
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
@@ -13,6 +14,29 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .models import CSVMapping, Transaction, BankAccount
 from core.base.utils.utils import get_matching_keyword_objs
+
+
+class TransactionFieldsConstants:
+    """Constants for Transaction model field names"""
+
+    ORIGINAL_ID = "original_id"
+    DATE_OF_SUBMISSION = "date_of_submission"
+    DATE_OF_TRANSACTION = "date_of_transaction"
+    AMOUNT = "amount"
+    CURRENCY = "currency"
+    BANK_ACCOUNT = "bank_account"
+    MY_NOTE = "my_note"
+    OTHER_NOTE = "other_note"
+    COUNTERPARTY_NOTE = "counterparty_note"
+    CONSTANT_SYMBOL = "constant_symbol"
+    SPECIFIC_SYMBOL = "specific_symbol"
+    VARIABLE_SYMBOL = "variable_symbol"
+    TRANSACTION_TYPE = "transaction_type"
+    COUNTERPARTY_ACCOUNT_NUMBER = "counterparty_account_number"
+    COUNTERPARTY_NAME = "counterparty_name"
+    SUBCATEGORY = "subcategory"
+    WANT_NEED_INVESTMENT = "want_need_investment"
+    IGNORE = "ignore"
 
 
 def get_original_id(row: pd.Series, csv_map: CSVMapping) -> str:
@@ -134,9 +158,7 @@ def create_categorization_string(transaction_data: dict, csv_map: CSVMapping):
 @method_decorator(csrf_exempt, name="dispatch")  # TODO: Make this view secure and stuff
 class ImportTransactionsView(View):
     @staticmethod
-    def _prepare_df(
-        csv_map: CSVMapping, csv_file: InMemoryUploadedFile
-    ) -> pd.DataFrame:
+    def _prepare_df(csv_map: CSVMapping, csv_file: UploadedFile) -> pd.DataFrame:
         # Trailing delimiters handle - without it, it sometimes throws an error
         raw_data = csv_file.read().decode(csv_map.encoding)
         cleaned_data = "\n".join(
@@ -181,28 +203,28 @@ class ImportTransactionsView(View):
         counterparty_name = get_counterparty_name(row, csv_map)
 
         transaction_data = {
-            "original_id": original_id,
-            "date_of_submission": date_of_submission,
-            "date_of_transaction": date_of_transaction,
-            "amount": amount,
-            "currency": currency,
-            "bank_account": bank_account,
-            "my_note": my_note,
-            "other_note": other_note,
-            "counterparty_note": counterparty_note,
-            "constant_symbol": constant_symbol,
-            "specific_symbol": specific_symbol,
-            "variable_symbol": variable_symbol,
-            "transaction_type": transaction_type,
-            "counterparty_account_number": counterparty_account_number,
-            "counterparty_name": counterparty_name,
+            TransactionFieldsConstants.ORIGINAL_ID: original_id,
+            TransactionFieldsConstants.DATE_OF_SUBMISSION: date_of_submission,
+            TransactionFieldsConstants.DATE_OF_TRANSACTION: date_of_transaction,
+            TransactionFieldsConstants.AMOUNT: amount,
+            TransactionFieldsConstants.CURRENCY: currency,
+            TransactionFieldsConstants.BANK_ACCOUNT: bank_account,
+            TransactionFieldsConstants.MY_NOTE: my_note,
+            TransactionFieldsConstants.OTHER_NOTE: other_note,
+            TransactionFieldsConstants.COUNTERPARTY_NOTE: counterparty_note,
+            TransactionFieldsConstants.CONSTANT_SYMBOL: constant_symbol,
+            TransactionFieldsConstants.SPECIFIC_SYMBOL: specific_symbol,
+            TransactionFieldsConstants.VARIABLE_SYMBOL: variable_symbol,
+            TransactionFieldsConstants.TRANSACTION_TYPE: transaction_type,
+            TransactionFieldsConstants.COUNTERPARTY_ACCOUNT_NUMBER: counterparty_account_number,
+            TransactionFieldsConstants.COUNTERPARTY_NAME: counterparty_name,
         }
 
         return transaction_data
 
-    def post(self, request):
+    def post(self, request: WSGIRequest) -> JsonResponse:
         try:
-            csv_map = CSVMapping.objects.get(id=request.POST.get("id"))
+            csv_map = CSVMapping.objects.get(id=request.POST.get("csv_map_id"))
             bank_account_id = request.POST.get("bank_account_id")
             csv_file = request.FILES.get("csv_file")
 
@@ -260,9 +282,9 @@ class ImportTransactionsView(View):
 
                 transaction_data.update(
                     {
-                        "subcategory": subcategory,
-                        "want_need_investment": want_need_investment,
-                        "ignore": ignore,
+                        TransactionFieldsConstants.SUBCATEGORY: subcategory,
+                        TransactionFieldsConstants.WANT_NEED_INVESTMENT: want_need_investment,
+                        TransactionFieldsConstants.IGNORE: ignore,
                     }
                 )
 
