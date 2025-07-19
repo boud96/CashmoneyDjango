@@ -1,9 +1,16 @@
 import uuid
 
 import pandas as pd
-from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
-from django.db.models import Q, QuerySet, F, ExpressionWrapper, DecimalField
+from django.db.models import (
+    Q,
+    QuerySet,
+    F,
+    ExpressionWrapper,
+    DecimalField,
+    Value,
+    CharField,
+)
 from multiselectfield import MultiSelectField
 
 
@@ -148,9 +155,7 @@ class Transaction(AbstractBaseModel):
             "account_name": F("bank_account__account_name"),
             "owners": F("bank_account__owners"),
             "effective_amount": effective_amount,
-            "tags": StringAgg(
-                "transactiontag__tag__name", delimiter=", ", distinct=True
-            ),
+            "tags": Value("", output_field=CharField()),
         }
 
         transactions = (
@@ -176,6 +181,11 @@ class Transaction(AbstractBaseModel):
 
         if not transactions:
             return pd.DataFrame(columns=cls.get_field_names())
+
+        for transaction in transactions:
+            transaction_obj = cls.objects.get(id=transaction["id"])
+            tags = [tag.tag.name for tag in transaction_obj.transactiontag_set.all()]
+            transaction["tags"] = ", ".join(tags) if tags else ""
 
         return pd.DataFrame.from_records(transactions)
 
@@ -263,13 +273,38 @@ class TransactionTag(AbstractBaseModel):
         return f"{self.transaction} - {self.tag}"
 
 
+def get_default_keyword_rules():
+    return {
+        "include": [],
+        "exclude": [],
+    }
+
+
 class Keyword(AbstractBaseModel):
+    INCLUDE_RULE_KEY = "include"
+    EXCLUDE_RULE_KEY = "exclude"
+
     value = models.CharField(max_length=128, null=False, blank=False, unique=True)
+    rules = models.JSONField(
+        max_length=128, null=False, blank=True, default=get_default_keyword_rules
+    )
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE)
     want_need_investment = models.CharField(
         max_length=128, choices=Transaction.WNI_CHOICES, null=True, blank=True
     )
     ignore = models.BooleanField(default=False)
+
+    def get_include_rules(self):
+        return self.rules.get(self.INCLUDE_RULE_KEY, []) if self.rules else []
+
+    def get_exclude_rules(self):
+        return self.rules.get(self.EXCLUDE_RULE_KEY, []) if self.rules else []
+
+    def set_rules(self, include=None, exclude=None):
+        self.rules = {
+            self.INCLUDE_RULE_KEY: include or [],
+            self.EXCLUDE_RULE_KEY: exclude or [],
+        }
 
     def __str__(self):
         return f"{self.value} - {self.subcategory}"

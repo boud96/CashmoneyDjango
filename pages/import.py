@@ -83,7 +83,7 @@ with st.form("import_csv_form"):
         else:
             try:
                 payload = {
-                    "id": str(selected_mapping.id),
+                    "csv_map_id": str(selected_mapping.id),
                     "bank_account_id": str(selected_bank_account.id),
                 }
                 files = {"csv_file": uploaded_file}
@@ -102,6 +102,7 @@ with st.form("import_csv_form"):
                 st.error(f"An error occurred: {e}")
 
 
+# TODO: Rewrite / implement in the form above ASAP
 with st.expander("Recategorize Transactions", expanded=True):
     col1, col2 = st.columns(2)
 
@@ -113,22 +114,24 @@ with st.expander("Recategorize Transactions", expanded=True):
     # Determine which action is triggered
     if recategorize_unassigned or recategorize_all:
         recategorize_assigned = recategorize_all  # True if "Recategorize All", False if "Recategorize Unassigned"
+        st.warning("--- Temporarily disabled ---")
+        st.stop()
 
-        # Send the POST request to the backend
-        try:
-            payload = {"recategorize_assigned": str(recategorize_assigned).lower()}
-
-            with st.spinner("Processing..."):
-                response = requests.post(recategorize_url, data=payload)
-
-            if response.status_code == 200:
-                st.success("Recategorization completed successfully!")
-                st.json(response.json())  # Single st.json for success response
-            else:
-                st.error(
-                    f"Failed to complete recategorization! Status code: {response.status_code}"
-                )
-                st.json(response.json())  # Single st.json for error response
-
-        except requests.exceptions.RequestException as e:
-            st.error(f"An error occurred: {e}")
+        # # Send the POST request to the backend
+        # try:
+        #     payload = {"recategorize_assigned": str(recategorize_assigned).lower()}
+        #
+        #     with st.spinner("Processing..."):
+        #         response = requests.post(recategorize_url, data=payload)
+        #
+        #     if response.status_code == 200:
+        #         st.success("Recategorization completed successfully!")
+        #         st.json(response.json())  # Single st.json for success response
+        #     else:
+        #         st.error(
+        #             f"Failed to complete recategorization! Status code: {response.status_code}"
+        #         )
+        #         st.json(response.json())  # Single st.json for error response
+        #
+        # except requests.exceptions.RequestException as e:
+        #     st.error(f"An error occurred: {e}")
