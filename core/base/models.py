@@ -1,9 +1,16 @@
 import uuid
 
 import pandas as pd
-from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
-from django.db.models import Q, QuerySet, F, ExpressionWrapper, DecimalField
+from django.db.models import (
+    Q,
+    QuerySet,
+    F,
+    ExpressionWrapper,
+    DecimalField,
+    Value,
+    CharField,
+)
 from multiselectfield import MultiSelectField
 
 
@@ -148,9 +155,7 @@ class Transaction(AbstractBaseModel):
             "account_name": F("bank_account__account_name"),
             "owners": F("bank_account__owners"),
             "effective_amount": effective_amount,
-            "tags": StringAgg(
-                "transactiontag__tag__name", delimiter=", ", distinct=True
-            ),
+            "tags": Value("", output_field=CharField()),
         }
 
         transactions = (
@@ -176,6 +181,11 @@ class Transaction(AbstractBaseModel):
 
         if not transactions:
             return pd.DataFrame(columns=cls.get_field_names())
+
+        for transaction in transactions:
+            transaction_obj = cls.objects.get(id=transaction["id"])
+            tags = [tag.tag.name for tag in transaction_obj.transactiontag_set.all()]
+            transaction["tags"] = ", ".join(tags) if tags else ""
 
         return pd.DataFrame.from_records(transactions)
 
