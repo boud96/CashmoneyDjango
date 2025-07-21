@@ -1,6 +1,7 @@
 import streamlit as st
 from app import app_launcher
 
+from widgets.recategorize import recategorize_tab_widget
 from widgets.filters.bank_account import BankAccountFilter
 from widgets.filters.by_owners import RecalculateAmountsByOwnersFilter
 from widgets.filters.category import CategoryFilter
@@ -70,23 +71,29 @@ def main():
         st.info("No transactions found.")
         return
 
-    # Overview Stats
-    overview_stats = OverviewStatsWidget(transactions, filter_params)
-    overview_stats.place_widget()
+    home_tab, recategorize_tab = st.tabs(["Home", "Recategorize"])
+    with home_tab:
+        # Overview Stats
+        overview_stats = OverviewStatsWidget(transactions, filter_params)
+        overview_stats.place_widget()
 
-    # Bar Chart
-    bar_chart = BarChartWidget(transactions, filter_params)
-    bar_chart.place_widget()
+        # Bar Chart
+        bar_chart = BarChartWidget(transactions, filter_params)
+        bar_chart.place_widget()
+
+        # Sun Bursts
+        transaction_sunburst = TransactionSunburstWidget(transactions)
+        transaction_sunburst.place_widget()
+
+        widget = TransactionWNIWidget(transactions)
+        widget.place_widget()
+
+    with recategorize_tab:
+        recategorize_tab_widget(transactions)
 
     # DataFrame
     transactions_dataframe = DataFrameWidget(transactions)
     transactions_dataframe.place_widget()
-
-    transaction_sunburst = TransactionSunburstWidget(transactions)
-    transaction_sunburst.place_widget()
-
-    widget = TransactionWNIWidget(transactions)
-    widget.place_widget()
 
 
 if __name__ == "__main__":
