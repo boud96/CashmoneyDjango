@@ -15,9 +15,14 @@ from widgets.stats.dataframe import DataFrameWidget
 from widgets.stats.category_sunburst import TransactionSunburstWidget
 from widgets.stats.wni_sunburst import TransactionWNIWidget
 from widgets.stats.overview_stats import OverviewStatsWidget
+import os
+from dotenv import load_dotenv
 
 
 def main():
+    load_dotenv()
+    DEBUG = os.getenv("DEBUG") == "True"  # TODO: Do properly
+
     models = app_launcher.get_models()
     Transaction = models[
         "Transaction"
@@ -64,8 +69,9 @@ def main():
 
     # Get combined filter params
     filter_params = filter_manager.get_combined_params()
-    st.write("Combined Filter Parameters:")  # TODO: Remove - debug
-    st.json(filter_params, expanded=False)
+    if DEBUG:
+        st.info("Combined Filter Parameters:")
+        st.json(filter_params, expanded=False)
 
     transactions = Transaction.get_transactions_from_db(filter_params)
     if not transactions:
