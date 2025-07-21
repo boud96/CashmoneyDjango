@@ -2,6 +2,7 @@ import streamlit as st
 from app import app_launcher
 
 from widgets.recategorize import recategorize_tab_widget
+from widgets.csv_import import import_form_widget
 from widgets.filters.bank_account import BankAccountFilter
 from widgets.filters.by_owners import RecalculateAmountsByOwnersFilter
 from widgets.filters.category import CategoryFilter
@@ -71,7 +72,7 @@ def main():
         st.info("No transactions found.")
         return
 
-    home_tab, recategorize_tab = st.tabs(["Home", "Recategorize"])
+    home_tab, recategorize_tab, import_tab = st.tabs(["Home", "Recategorize", "Import"])
     with home_tab:
         # Overview Stats
         overview_stats = OverviewStatsWidget(transactions, filter_params)
@@ -90,6 +91,9 @@ def main():
 
     with recategorize_tab:
         recategorize_tab_widget(transactions)
+
+    with import_tab:
+        import_form_widget()
 
     # DataFrame
     transactions_dataframe = DataFrameWidget(transactions)
