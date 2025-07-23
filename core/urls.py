@@ -18,7 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from core.base.views import ImportTransactionsView, recategorize_transactions
+from core.base.views import ImportTransactionsView, RecategorizeTransactionsView
 
 
 class URLConstant:
@@ -36,7 +36,7 @@ urlpatterns = [
     ),
     path(
         URLConstant.RECATEGORIZE_TRANSACTIONS,
-        recategorize_transactions,
+        RecategorizeTransactionsView.as_view(),
         name="recategorize-transactions",
     ),
 ]

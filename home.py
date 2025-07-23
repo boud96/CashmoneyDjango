@@ -1,6 +1,8 @@
 import streamlit as st
 from app import app_launcher
 
+from widgets.recategorize import recategorize_tab_widget
+from widgets.csv_import import import_form_widget
 from widgets.filters.bank_account import BankAccountFilter
 from widgets.filters.by_owners import RecalculateAmountsByOwnersFilter
 from widgets.filters.category import CategoryFilter
@@ -13,9 +15,14 @@ from widgets.stats.dataframe import DataFrameWidget
 from widgets.stats.category_sunburst import TransactionSunburstWidget
 from widgets.stats.wni_sunburst import TransactionWNIWidget
 from widgets.stats.overview_stats import OverviewStatsWidget
+import os
+from dotenv import load_dotenv
 
 
 def main():
+    load_dotenv()
+    DEBUG = os.getenv("DEBUG") == "True"  # TODO: Do properly
+
     models = app_launcher.get_models()
     Transaction = models[
         "Transaction"
@@ -62,31 +69,41 @@ def main():
 
     # Get combined filter params
     filter_params = filter_manager.get_combined_params()
-    st.write("Combined Filter Parameters:")  # TODO: Remove - debug
-    st.json(filter_params, expanded=False)
+    if DEBUG:
+        st.info("Combined Filter Parameters:")
+        st.json(filter_params, expanded=False)
 
     transactions = Transaction.get_transactions_from_db(filter_params)
     if not transactions:
         st.info("No transactions found.")
         return
 
-    # Overview Stats
-    overview_stats = OverviewStatsWidget(transactions, filter_params)
-    overview_stats.place_widget()
+    home_tab, recategorize_tab, import_tab = st.tabs(["Home", "Recategorize", "Import"])
+    with home_tab:
+        # Overview Stats
+        overview_stats = OverviewStatsWidget(transactions, filter_params)
+        overview_stats.place_widget()
 
-    # Bar Chart
-    bar_chart = BarChartWidget(transactions, filter_params)
-    bar_chart.place_widget()
+        # Bar Chart
+        bar_chart = BarChartWidget(transactions, filter_params)
+        bar_chart.place_widget()
+
+        # Sun Bursts
+        transaction_sunburst = TransactionSunburstWidget(transactions)
+        transaction_sunburst.place_widget()
+
+        widget = TransactionWNIWidget(transactions)
+        widget.place_widget()
+
+    with recategorize_tab:
+        recategorize_tab_widget(transactions)
+
+    with import_tab:
+        import_form_widget()
 
     # DataFrame
     transactions_dataframe = DataFrameWidget(transactions)
     transactions_dataframe.place_widget()
-
-    transaction_sunburst = TransactionSunburstWidget(transactions)
-    transaction_sunburst.place_widget()
-
-    widget = TransactionWNIWidget(transactions)
-    widget.place_widget()
 
 
 if __name__ == "__main__":

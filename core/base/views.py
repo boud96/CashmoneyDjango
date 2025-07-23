@@ -437,116 +437,231 @@ class ImportTransactionsView(View):
         return categorization_dict, is_category_overlap, is_uncategorized
 
 
-# TODO: Rewrite / implement in the View above ASAP
-@csrf_exempt  # TODO: Secure this view appropriately
-def recategorize_transactions(request):  # TODO: Currently USELESS. Rewrite ASAP
-    if request.method == "POST":
-        pass
+@method_decorator(csrf_exempt, name="dispatch")  # TODO: Make this view secure and stuff
+class RecategorizeTransactionsView(View):
+    """
+    View for recategorizing transactions.
 
+    This view loads transactions from the Transaction model and recategorizes them.
 
-#         try:
-#             recategorize_assigned = (
-#                 request.POST.get("recategorize_assigned", "false").lower() == "true"
-#             )
-#
-#             if recategorize_assigned:
-#                 transactions = Transaction.objects.all()
-#             else:
-#                 transactions = Transaction.objects.filter(subcategory__isnull=True)
-#
-#             updated_transactions = []
-#             category_overlap = []
-#             uncategorized = []
-#
-#             for transaction in transactions:
-#                 # TODO: Implement recatoegorization by CVSMapping fields like in the import
-#                 lookup_str = f"{transaction.my_note}{transaction.other_note}{transaction.counterparty_note}{transaction.counterparty_name}{transaction.counterparty_account_number}"
-#                 matching_keywords = get_matching_keyword_objs(lookup_str)
-#
-#                 subcategory = None
-#                 want_need_investment = None
-#
-#                 is_category_overlap = False
-#                 if len(matching_keywords) == 1:
-#                     subcategory = matching_keywords[0].subcategory
-#                     want_need_investment = matching_keywords[0].want_need_investment
-#                     updated_transactions.append(transaction)
-#
-#                 elif (
-#                     len(matching_keywords) > 1
-#                 ):  # TODO: Implement this to the import_transactions view
-#                     first_subcategory = matching_keywords[0].subcategory
-#                     first_want_need_investment = matching_keywords[
-#                         0
-#                     ].want_need_investment
-#                     all_same = True
-#                     for keyword in matching_keywords:
-#                         if (
-#                             keyword.subcategory != first_subcategory
-#                             or keyword.want_need_investment
-#                             != first_want_need_investment
-#                         ):
-#                             all_same = False
-#                             break
-#                     if all_same:
-#                         subcategory = first_subcategory
-#                         want_need_investment = first_want_need_investment
-#                     else:
-#                         is_category_overlap = True
-#
-#                 else:
-#                     uncategorized.append(str(transaction))
-#                     continue
-#
-#                 if is_category_overlap:
-#                     category_overlap.append(str(transaction))
-#                     continue
-#
-#                 # TODO: check if behavior is correct
-#                 ignore = matching_keywords[0].ignore if matching_keywords else False
-#                 if BankAccount.objects.filter(
-#                     account_number=transaction.counterparty_account_number
-#                 ).exists():
-#                     ignore = True
-#
-#                 transaction.subcategory = subcategory
-#                 transaction.want_need_investment = want_need_investment
-#                 transaction.ignore = ignore
-#
-#                 updated_transactions.append(transaction)
-#
-#             Transaction.objects.bulk_update(
-#                 updated_transactions,
-#                 fields=["subcategory", "want_need_investment", "ignore"],
-#             )
-#
-#             return JsonResponse(
-#                 {
-#                     "loaded": {
-#                         "message": f"Loaded {len(transactions)} transactions",
-#                         "transactions": [str(t) for t in updated_transactions],
-#                     },
-#                     "updated": {
-#                         "message": f"Updated {len(updated_transactions)} transactions",
-#                         "transactions": [str(t) for t in updated_transactions],
-#                     },
-#                     "skipped": {
-#                         "message": f"Skipped {len(category_overlap) + len(uncategorized)} transactions",
-#                         "category_overlap": {
-#                             "message": f"Overlapping categories for {len(category_overlap)} transactions",
-#                             "transactions": category_overlap,
-#                         },
-#                         "uncategorized": {
-#                             "message": f"Category not found for {len(uncategorized)} transactions",
-#                             "transactions": uncategorized,
-#                         },
-#                     },
-#                 },
-#                 status=200,
-#             )
-#
-#         except Exception as e:
-#             print(traceback.format_exc())  # TODO: DEBUG remove
-#             return JsonResponse({"error": str(e)}, status=500)
-#
-#     return JsonResponse({"error": "Invalid request method"}, status=405)
+    It accepts a list of UUIDs and a list of fields to use for categorization.
+    """
+
+    def _create_categorization_string(
+        self, transaction: Transaction, fields=None
+    ) -> str:
+        """
+        Create a categorization string from a Transaction object.
+
+        This is similar to the create_categorization_string function but works directly
+        with Transaction objects instead of using CSV mappings.  # TODO: Make a Base class for overlapping methods - maybe not this one?
+
+        Args:
+            transaction: The Transaction object to create a categorization string from.
+            fields: Optional list of fields to use for categorization. Must be a subset of
+                   CSVMapping.ALLOWED_FIELDS. If not provided, all ALLOWED_FIELDS are used.
+        """
+
+        if fields:
+            invalid_fields = [
+                field for field in fields if field not in CSVMapping.ALLOWED_FIELDS
+            ]
+            if invalid_fields:
+                raise ValueError(
+                    f"Invalid fields: {', '.join(invalid_fields)}. Fields must be in CSVMapping.ALLOWED_FIELDS."
+                )
+
+        categorization_parts = []
+        for field_name in fields:
+            value = getattr(transaction, field_name, None)
+            if value:
+                categorization_parts.append(str(value))
+
+        categorization_string = " | ".join(categorization_parts)
+        return categorization_string
+
+    @staticmethod
+    def _get_matching_keyword_objs(categorization_string: str) -> QuerySet[Keyword]:
+        """
+        Get matching keyword objects for a categorization string.
+
+        This is the same as ImportTransactionsView._get_matching_keyword_objs.  # TODO: Make a Base class for overlapping methods
+        """
+        categorization_string = categorization_string.lower().replace(" ", "")
+
+        include_keywords = Keyword.objects.none()
+        exclude_keywords = Keyword.objects.none()
+        matching_keywords = Keyword.objects.none()
+
+        for keyword in Keyword.objects.all().order_by("value"):
+            all_include_rules = []
+            for include_rule in keyword.rules.get("include"):
+                all_include_rules.append(include_rule.lower().replace(" ", ""))
+
+            all_exclude_rules = []
+            for exclude_rule in keyword.rules.get("exclude"):
+                all_exclude_rules.append(exclude_rule.lower().replace(" ", ""))
+
+            if all(
+                include_rule in categorization_string
+                for include_rule in all_include_rules
+            ):
+                include_keywords = include_keywords | Keyword.objects.filter(
+                    id=keyword.id
+                )
+
+            if any(
+                exclude_rule in categorization_string
+                for exclude_rule in all_exclude_rules
+            ):
+                exclude_keywords = exclude_keywords | Keyword.objects.filter(
+                    id=keyword.id
+                )
+
+            matching_keywords = include_keywords.exclude(id__in=exclude_keywords)
+
+        return matching_keywords
+
+    @staticmethod
+    def _create_categorization_dict(
+        matching_keywords: QuerySet[Keyword], transaction_data: dict
+    ) -> (dict, bool, bool):
+        """
+        Create a categorization dictionary from matching keywords.
+
+        This is the same as ImportTransactionsView._create_categorization_dict.  # TODO: Make a Base class for overlapping methods
+        """
+        subcategory = None
+        want_need_investment = None
+
+        is_category_overlap = False
+        is_uncategorized = False
+        ignore = False
+
+        if len(matching_keywords) == 1:
+            subcategory = matching_keywords[0].subcategory
+            want_need_investment = matching_keywords[0].want_need_investment
+            ignore = matching_keywords[0].ignore if matching_keywords else False
+
+        elif len(matching_keywords) > 1:
+            for i in matching_keywords:
+                if (
+                    # If all matched keywords have the same subcategories, wni and ignore,
+                    # just pick the first occurrence since they are the same
+                    i.subcategory != matching_keywords[0].subcategory
+                    or i.want_need_investment
+                    != matching_keywords[0].want_need_investment
+                    or i.ignore != matching_keywords[0].ignore
+                ):
+                    is_category_overlap = True
+                    break
+
+            if not is_category_overlap:
+                subcategory = matching_keywords[0].subcategory
+                want_need_investment = matching_keywords[0].want_need_investment
+        else:
+            is_uncategorized = True
+
+        if BankAccount.objects.filter(
+            account_number=transaction_data.get(
+                TransactionFieldsConstants.COUNTERPARTY_ACCOUNT_NUMBER
+            )
+        ).exists():
+            ignore = True
+
+        categorization_dict = {
+            TransactionFieldsConstants.SUBCATEGORY: subcategory,
+            TransactionFieldsConstants.WANT_NEED_INVESTMENT: want_need_investment,
+            TransactionFieldsConstants.IGNORE: ignore,
+        }
+
+        return categorization_dict, is_category_overlap, is_uncategorized
+
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        """
+        Handle POST requests to recategorize transactions.
+        """
+        try:
+            uuids = request.POST.getlist("uuids", [])
+            fields = request.POST.getlist("fields", [])
+
+            updated = []
+            category_overlap = []
+            uncategorized = []
+            if uuids and fields:
+                transactions = Transaction.objects.filter(id__in=uuids)
+                for transaction in transactions:
+                    transaction_data = {
+                        TransactionFieldsConstants.ORIGINAL_ID: transaction.original_id,
+                        TransactionFieldsConstants.DATE_OF_SUBMISSION: transaction.date_of_submission,
+                        TransactionFieldsConstants.DATE_OF_TRANSACTION: transaction.date_of_transaction,
+                        TransactionFieldsConstants.AMOUNT: transaction.amount,
+                        TransactionFieldsConstants.CURRENCY: transaction.currency,
+                        TransactionFieldsConstants.BANK_ACCOUNT: transaction.bank_account,
+                        TransactionFieldsConstants.MY_NOTE: transaction.my_note,
+                        TransactionFieldsConstants.OTHER_NOTE: transaction.other_note,
+                        TransactionFieldsConstants.COUNTERPARTY_NOTE: transaction.counterparty_note,
+                        TransactionFieldsConstants.CONSTANT_SYMBOL: transaction.constant_symbol,
+                        TransactionFieldsConstants.SPECIFIC_SYMBOL: transaction.specific_symbol,
+                        TransactionFieldsConstants.VARIABLE_SYMBOL: transaction.variable_symbol,
+                        TransactionFieldsConstants.TRANSACTION_TYPE: transaction.transaction_type,
+                        TransactionFieldsConstants.COUNTERPARTY_ACCOUNT_NUMBER: transaction.counterparty_account_number,
+                        TransactionFieldsConstants.COUNTERPARTY_NAME: transaction.counterparty_name,
+                    }
+
+                    categorization_string = self._create_categorization_string(
+                        transaction, fields
+                    )
+                    matching_keywords = self._get_matching_keyword_objs(
+                        categorization_string
+                    )
+                    categorization_dict, is_category_overlap, is_uncategorized = (
+                        self._create_categorization_dict(
+                            matching_keywords, transaction_data
+                        )
+                    )
+
+                    transaction.subcategory = categorization_dict[
+                        TransactionFieldsConstants.SUBCATEGORY
+                    ]
+                    transaction.want_need_investment = categorization_dict[
+                        TransactionFieldsConstants.WANT_NEED_INVESTMENT
+                    ]
+                    transaction.ignore = categorization_dict[
+                        TransactionFieldsConstants.IGNORE
+                    ]
+                    transaction.save()
+
+                    if is_category_overlap:
+                        category_overlap.append(transaction)
+                    elif is_uncategorized:
+                        uncategorized.append(transaction)
+                    else:
+                        updated.append(transaction)
+
+            # Create response
+            return JsonResponse(
+                {
+                    "updated": {
+                        "message": f"Successfully recategorized {len(updated)} transactions",
+                        "transactions": [str(transaction) for transaction in updated],
+                    },
+                    "category_overlap": {
+                        "message": f"Uncategorized {len(category_overlap)} transactions due to category overlap",
+                        "transactions": [
+                            str(transaction) for transaction in category_overlap
+                        ],
+                    },
+                    "uncategorized": {
+                        "message": f"Uncategorized {len(uncategorized)} transactions due to no matching keywords",
+                        "transactions": [
+                            str(transaction) for transaction in uncategorized
+                        ],
+                    },
+                },
+                status=200,
+            )
+
+        except Exception as e:
+            print(traceback.format_exc())  # TODO: DEBUG remove
+            return JsonResponse({"error": str(e)}, status=500)
