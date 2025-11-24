@@ -1,5 +1,4 @@
-# Base image (Python 3.11.13 on Debian)
-FROM python:3.11.13-slim
+FROM python:3.12-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -19,7 +18,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy entrypoint script first and make it executable
 COPY entrypoint.sh /entrypoint.sh
