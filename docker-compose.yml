@@ -2,9 +2,9 @@ services:
   # PostgreSQL Database
   db:
     image: postgres:15
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-#      - ./init_data.sql:/docker-entrypoint-initdb.d/init_data.sql:ro  # TODO: Uncomment to include a sample db? Commit the .sql file?
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data/  # TODO: Do not commit the uncomment
+#      - ./init_data.sql:/docker-entrypoint-initdb.d/init_data.sql:ro  # TODO: Remove this line
     env_file:
       - .env
     environment:
@@ -49,5 +49,5 @@ services:
     depends_on:
       - django
 
-volumes:
-  postgres_data:
+#volumes:  # TODO DO NOT COMMIT
+#  postgres_data:
