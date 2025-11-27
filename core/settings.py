@@ -79,14 +79,24 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+IN_DOCKER = os.getenv('RUNNING_IN_DOCKER') == 'true'
+if IN_DOCKER:
+    # We are inside Docker: use internal network names
+    db_host = os.getenv('DB_HOST')
+    db_port = os.getenv('DB_PORT')
+else:
+    # We are on Local Windows: connect to localhost and the external port
+    db_host = 'localhost'
+    db_port = os.getenv('DB_EXTERNAL_PORT')
+
 DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE"),
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
+        "HOST": db_host,
+        "PORT": db_port,
     }
 }
 
