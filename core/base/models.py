@@ -1,6 +1,7 @@
 import uuid
 
 import pandas as pd
+from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
 from django.db.models import (
     Q,
@@ -8,8 +9,7 @@ from django.db.models import (
     F,
     ExpressionWrapper,
     DecimalField,
-    Value,
-    CharField,
+    Subquery,
 )
 from multiselectfield import MultiSelectField
 
@@ -135,6 +135,7 @@ class Transaction(AbstractBaseModel):
                 query &= Q(transactiontag__tag__in=tags)
 
         field_names = cls.get_field_names()
+        fields_to_select = [name for name in field_names if name != 'transactiontag']
         related_fields = [
             "subcategory__name",
             "subcategory__category__name",
@@ -149,20 +150,28 @@ class Transaction(AbstractBaseModel):
                 output_field=DecimalField(max_digits=2, decimal_places=2),
             )
 
+        tags_subquery = Subquery(
+            cls.objects.filter(pk=models.OuterRef('pk'))
+            .annotate(
+                aggregated_tags=StringAgg('transactiontag__tag__name', delimiter=', ', distinct=True)
+            )
+            .values('aggregated_tags')[:1]
+        )
+
         annotation = {
             "subcategory_name": F("subcategory__name"),
             "category_name": F("subcategory__category__name"),
             "account_name": F("bank_account__account_name"),
             "owners": F("bank_account__owners"),
             "effective_amount": effective_amount,
-            "tags": Value("", output_field=CharField()),
+            "tags": tags_subquery,
         }
 
         transactions = (
             cls.objects.filter(query)
             .annotate(**annotation)
             .values(
-                *field_names,
+                *fields_to_select,
                 *related_fields,
                 "subcategory_name",
                 "category_name",
@@ -171,6 +180,7 @@ class Transaction(AbstractBaseModel):
                 "effective_amount",
                 "tags",
             )
+            .distinct()
         ).order_by("-date_of_transaction")
 
         return transactions
