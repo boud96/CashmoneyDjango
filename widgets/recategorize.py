@@ -1,13 +1,15 @@
+import os
+
 import streamlit as st
 import requests
 from django.db.models import QuerySet
 
 from core.base.models import Transaction, CSVMapping
-from core.urls import URLConstant
+from constants import URLConstants
 
-recategorize_url = (
-    "http://127.0.0.1:8000/" + URLConstant.RECATEGORIZE_TRANSACTIONS
-)  # TODO: Let backend handle this
+API_URL = (
+    os.getenv("API_BASE_URL", "http://localhost:8000") + URLConstants.RECATEGORIZE_TRANSACTIONS
+)
 
 
 def recategorize_tab_widget(transactions: QuerySet[Transaction]):
@@ -29,14 +31,14 @@ def recategorize_tab_widget(transactions: QuerySet[Transaction]):
             if not transactions_uuid_list:
                 st.warning(
                     "No transactions to recategorize."
-                )  # This should neve happen
+                )  # This should never happen
                 st.stop()
 
             try:
                 payload = {"uuids": transactions_uuid_list, "fields": filter_fields}
 
                 with st.spinner("Processing..."):
-                    response = requests.post(recategorize_url, data=payload)
+                    response = requests.post(API_URL, data=payload)
 
                 if response.status_code == 200:
                     st.success("Recategorization completed successfully!")
