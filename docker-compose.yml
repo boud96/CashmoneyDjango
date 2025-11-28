@@ -25,6 +25,8 @@ services:
     command: django
     volumes:
       - .:/app
+      - /app/.venv
+      - /app/.git
     ports:
       - "${DJANGO_PORT}:${DJANGO_PORT}"
     env_file:
@@ -51,6 +53,8 @@ services:
     command: streamlit
     volumes:
       - .:/app
+      - /app/.venv
+      - /app/.git
     ports:
       - "${STREAMLIT_PORT}:${STREAMLIT_PORT}"
     env_file:
