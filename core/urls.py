@@ -18,25 +18,25 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from core.base.views import ImportTransactionsView, RecategorizeTransactionsView
-
-
-class URLConstant:
-    ADMIN = "admin/"
-    IMPORT_TRANSACTIONS = "import-transactions/"
-    RECATEGORIZE_TRANSACTIONS = "recategorize-transactions/"
+from constants import URLConstants
+from core.base.views import ImportTransactionsView, RecategorizeTransactionsView, UpdateKeywordsView
 
 
 urlpatterns = [
-    path(URLConstant.ADMIN, admin.site.urls),
+    path(URLConstants.ADMIN, admin.site.urls),
     path(
-        URLConstant.IMPORT_TRANSACTIONS,
+        URLConstants.IMPORT_TRANSACTIONS,
         ImportTransactionsView.as_view(),
         name="import-transactions",
     ),
     path(
-        URLConstant.RECATEGORIZE_TRANSACTIONS,
+        URLConstants.RECATEGORIZE_TRANSACTIONS,
         RecategorizeTransactionsView.as_view(),
         name="recategorize-transactions",
+    ),
+    path(
+        URLConstants.UPDATE_KEYWORDS,
+        UpdateKeywordsView.as_view(),
+        name="update-keywords",
     ),
 ]
