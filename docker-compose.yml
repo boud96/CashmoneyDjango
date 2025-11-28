@@ -4,7 +4,6 @@ services:
     image: postgres:15
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    # We load the file for general variables, but map specific Postgres keys below
     env_file:
       - .env
     environment:
