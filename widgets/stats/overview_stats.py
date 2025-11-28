@@ -121,33 +121,33 @@ class OverviewStatsWidget(BaseWidget):
 
     def place_widget(self):
         if self.transactions:
-            st.markdown("## Available")
-            st.markdown("## :orange[TODO]")  # TODO: Add expenses
+            # st.markdown("## Available")
+            # st.markdown("## :orange[1234]")  # TODO: Add
 
             col_1, col_2, col_3 = st.columns(3)
             with col_1:
-                st.markdown("## Expenses")
-                st.markdown(f"## :red[{self.stats.get(SUM_EXPENSES)}]")
+                st.markdown("## Net")
+                st.markdown(f"## :blue[{self.stats.get(NET_SUM)}]")
                 st.metric(
                     label="Monthly averages:",
                     value="",
-                    delta=self.stats.get(MONTHLY_AVG_EXPENSES),
+                    delta=self.stats.get(MONTHLY_AVG_NET),
                 )
             with col_2:
-                st.markdown("## Sum of incomes")
+                st.markdown("## Incomes")
                 st.markdown(f"## :green[{self.stats.get(SUM_INCOMES)}]")
                 st.metric(
-                    label="Sum of incomes",
+                    label="Incomes",
                     value="",
                     delta=self.stats.get(MONTHLY_AVG_INCOMES),
                     label_visibility="hidden",
                 )
             with col_3:
-                st.markdown("## Net")
-                st.markdown(f"## :blue[{self.stats.get(NET_SUM)}]")
+                st.markdown("## Expenses")
+                st.markdown(f"## :red[{self.stats.get(SUM_EXPENSES)}]")
                 st.metric(
-                    label="Net value",
+                    label="Expenses",
                     value="",
-                    delta=self.stats.get(MONTHLY_AVG_NET),
+                    delta=self.stats.get(MONTHLY_AVG_EXPENSES),
                     label_visibility="hidden",
                 )
