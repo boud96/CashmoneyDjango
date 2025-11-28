@@ -1,14 +1,15 @@
+import os
+
 import streamlit as st
 import requests
 from core.base.models import CSVMapping, BankAccount, Transaction
-from core.urls import URLConstant
+from constants import URLConstants
 from widgets.stats.dataframe import DataFrameWidget
 
 
-import_url = (
-    "http://127.0.0.1:8000/" + URLConstant.IMPORT_TRANSACTIONS
-)  # TODO: Let backend handle this
-
+API_URL = (
+    os.getenv("API_BASE_URL", "http://localhost:8000") + URLConstants.IMPORT_TRANSACTIONS
+)
 
 def render_success_response(json_response: dict):
     st.success("Data submitted successfully!")
@@ -90,7 +91,7 @@ def import_form_widget():
                     files = {"csv_file": uploaded_file}
 
                     st.spinner("Submitting data...")
-                    response = requests.post(import_url, data=payload, files=files)
+                    response = requests.post(API_URL, data=payload, files=files)
 
                     if response.status_code == 201:
                         render_success_response(response.json())
