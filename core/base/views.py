@@ -1,4 +1,5 @@
 import io
+import json
 import traceback
 from datetime import datetime
 from typing import Optional
@@ -13,7 +14,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import CSVMapping, Transaction, BankAccount, Keyword
+from .models import CSVMapping, Transaction, BankAccount, Keyword, Subcategory
 
 
 class TransactionFieldsConstants:
@@ -664,4 +665,95 @@ class RecategorizeTransactionsView(View):
 
         except Exception as e:
             print(traceback.format_exc())  # TODO: DEBUG remove
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateKeywordView(View):
+    """
+    View for creating new Keyword objects.
+    Accepts a JSON payload defining the keyword properties and rules.
+    """
+
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+            description = data.get("description")
+            subcategory_id = data.get("subcategory")
+            wni = data.get("want_need_investment")
+            ignore = data.get("ignore", False)
+            rules = data.get("rules", {})
+
+            if not description:
+                return JsonResponse({"error": "Description is required"}, status=400)
+            if not subcategory_id:
+                return JsonResponse({"error": "Subcategory ID is required"}, status=400)
+
+            try:
+                subcategory = Subcategory.objects.get(id=subcategory_id)
+            except Subcategory.DoesNotExist:
+                return JsonResponse(
+                    {"error": f"Subcategory with id {subcategory_id} does not exist"},
+                    status=404
+                )
+
+            keyword = Keyword.objects.create(
+                description=description,
+                subcategory=subcategory,
+                want_need_investment=wni,
+                ignore=ignore,
+                rules=rules
+            )
+
+            return JsonResponse(
+                {
+                    "message": "Keyword created successfully",
+                    "id": keyword.id,
+                    "description": keyword.description,
+                    "subcategory": str(keyword.subcategory),
+                },
+                status=201
+            )
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteKeywordsView(View):
+    """
+    View for bulk deleting Keyword objects.
+    Accepts a JSON payload: {"ids": ["uuid1", "uuid2", ...]}
+    """
+
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+            ids = data.get("ids", [])
+
+            if not isinstance(ids, list):
+                return JsonResponse({"error": "'ids' must be a list"}, status=400)
+
+            if not ids:
+                return JsonResponse({"message": "No IDs provided"}, status=200)
+
+            deleted_count, _ = Keyword.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {
+                    "message": "Keywords deleted successfully",
+                    "count": deleted_count
+                },
+                status=200
+            )
+
+        except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)

@@ -1,5 +1,6 @@
 import streamlit as st
 from app import app_launcher
+from widgets.edit import edit_tab_widget, delete_keyword_tab_widget
 
 from widgets.recategorize import recategorize_tab_widget
 from widgets.csv_import import import_form_widget
@@ -78,7 +79,7 @@ def main():
         st.info("No transactions found.")
         return
 
-    home_tab, recategorize_tab, import_tab = st.tabs(["Home", "Recategorize", "Import"])
+    home_tab, recategorize_tab, import_tab, edit_tab = st.tabs(["Home", "Recategorize", "Import", "Edit"])
     with home_tab:
         # Overview Stats
         overview_stats = OverviewStatsWidget(transactions, filter_params)
@@ -100,6 +101,11 @@ def main():
 
     with import_tab:
         import_form_widget()
+
+    with edit_tab:
+        with st.expander("Keywords"):
+            edit_tab_widget()
+            delete_keyword_tab_widget()
 
     # DataFrame
     transactions_dataframe = DataFrameWidget(transactions)
