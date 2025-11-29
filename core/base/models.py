@@ -13,6 +13,8 @@ from django.db.models import (
 )
 from multiselectfield import MultiSelectField
 
+from constants import ModelConstants
+
 
 # TODO: Add plural names
 
@@ -47,13 +49,6 @@ class BankAccount(AbstractBaseModel):
 
 
 class Transaction(AbstractBaseModel):
-    WNI_CHOICES = [
-        ("want", "Want"),
-        ("investment", "Investment"),
-        ("need", "Need"),
-        ("other", "Other"),
-    ]
-
     @classmethod
     def get_field_names(cls) -> list:
         return [field.name for field in cls._meta.get_fields()]
@@ -235,7 +230,7 @@ class Transaction(AbstractBaseModel):
         "Subcategory", on_delete=models.CASCADE, null=True, blank=True
     )
     want_need_investment = models.CharField(
-        max_length=128, choices=WNI_CHOICES, null=True, blank=True
+        max_length=128, choices=ModelConstants.WNI_CHOICES, null=True, blank=True
     )
     ignore = models.BooleanField(default=False)
 
@@ -285,35 +280,32 @@ class TransactionTag(AbstractBaseModel):
 
 def get_default_keyword_rules():
     return {
-        "include": [],
-        "exclude": [],
+        ModelConstants.INCLUDE_RULE_KEY: [],
+        ModelConstants.EXCLUDE_RULE_KEY: [],
     }
 
 
 class Keyword(AbstractBaseModel):
-    INCLUDE_RULE_KEY = "include"
-    EXCLUDE_RULE_KEY = "exclude"
-
     description = models.CharField(max_length=128, null=True, blank=True)
     rules = models.JSONField(
         max_length=128, null=False, blank=True, default=get_default_keyword_rules
     )
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE)
     want_need_investment = models.CharField(
-        max_length=128, choices=Transaction.WNI_CHOICES, null=True, blank=True
+        max_length=128, choices=ModelConstants.WNI_CHOICES, null=True, blank=True
     )
     ignore = models.BooleanField(default=False)
 
     def get_include_rules(self):
-        return self.rules.get(self.INCLUDE_RULE_KEY, []) if self.rules else []
+        return self.rules.get(ModelConstants.INCLUDE_RULE_KEY, []) if self.rules else []
 
     def get_exclude_rules(self):
-        return self.rules.get(self.EXCLUDE_RULE_KEY, []) if self.rules else []
+        return self.rules.get(ModelConstants.EXCLUDE_RULE_KEY, []) if self.rules else []
 
     def set_rules(self, include=None, exclude=None):
         self.rules = {
-            self.INCLUDE_RULE_KEY: include or [],
-            self.EXCLUDE_RULE_KEY: exclude or [],
+            ModelConstants.INCLUDE_RULE_KEY: include or [],
+            ModelConstants.EXCLUDE_RULE_KEY: exclude or [],
         }
 
     def __str__(self):
