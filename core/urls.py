@@ -19,8 +19,7 @@ from django.contrib import admin
 from django.urls import path
 
 from constants import URLConstants
-from core.base.views import ImportTransactionsView, RecategorizeTransactionsView, UpdateKeywordsView
-
+from core.base.views import ImportTransactionsView, RecategorizeTransactionsView, CreateKeywordView, DeleteKeywordsView
 
 urlpatterns = [
     path(URLConstants.ADMIN, admin.site.urls),
@@ -35,8 +34,13 @@ urlpatterns = [
         name="recategorize-transactions",
     ),
     path(
-        URLConstants.UPDATE_KEYWORDS,
-        UpdateKeywordsView.as_view(),
-        name="update-keywords",
+        URLConstants.CREATE_KEYWORDS,
+        CreateKeywordView.as_view(),
+        name="create-keywords",
+    ),
+    path(
+        URLConstants.DELETE_KEYWORDS,
+        DeleteKeywordsView.as_view(),
+        name="delete-keywords",
     ),
 ]
