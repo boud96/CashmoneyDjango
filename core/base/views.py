@@ -231,7 +231,7 @@ class ImportTransactionsView(View):
         exclude_keywords = Keyword.objects.none()
         matching_keywords = Keyword.objects.none()
 
-        for keyword in Keyword.objects.all().order_by("value"):
+        for keyword in Keyword.objects.all().order_by("description"):
             all_include_rules = []
             for include_rule in keyword.rules.get("include"):
                 all_include_rules.append(include_rule.lower().replace(" ", ""))
@@ -493,7 +493,7 @@ class RecategorizeTransactionsView(View):
         exclude_keywords = Keyword.objects.none()
         matching_keywords = Keyword.objects.none()
 
-        for keyword in Keyword.objects.all().order_by("value"):
+        for keyword in Keyword.objects.all().order_by("description"):
             all_include_rules = []
             for include_rule in keyword.rules.get("include"):
                 all_include_rules.append(include_rule.lower().replace(" ", ""))

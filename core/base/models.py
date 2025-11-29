@@ -294,7 +294,7 @@ class Keyword(AbstractBaseModel):
     INCLUDE_RULE_KEY = "include"
     EXCLUDE_RULE_KEY = "exclude"
 
-    value = models.CharField(max_length=128, null=False, blank=False, unique=True)
+    description = models.CharField(max_length=128, null=True, blank=True)
     rules = models.JSONField(
         max_length=128, null=False, blank=True, default=get_default_keyword_rules
     )
@@ -317,7 +317,7 @@ class Keyword(AbstractBaseModel):
         }
 
     def __str__(self):
-        return f"{self.value} - {self.subcategory}"
+        return f"{self.description} - {self.subcategory}"
 
 
 def get_default_bank_account():

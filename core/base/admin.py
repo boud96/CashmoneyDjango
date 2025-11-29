@@ -83,7 +83,7 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Keyword)
 class KeywordAdmin(admin.ModelAdmin):
-    list_display = ("value", "subcategory", "want_need_investment", "ignore")
+    list_display = ("description", "subcategory", "want_need_investment", "ignore")
 
 
 @admin.register(CSVMapping)
