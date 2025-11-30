@@ -229,7 +229,7 @@ class Transaction(AbstractBaseModel):
     )
     currency = models.CharField(max_length=3, null=False, blank=False)
     subcategory = models.ForeignKey(
-        "Subcategory", on_delete=models.CASCADE, null=True, blank=True
+        "Subcategory", on_delete=models.SET_NULL, null=True, blank=True
     )
     want_need_investment = models.CharField(
         max_length=128, choices=ModelConstants.WNI_CHOICES, null=True, blank=True
