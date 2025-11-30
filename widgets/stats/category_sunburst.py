@@ -133,12 +133,12 @@ class TransactionSunburstWidget(BaseWidget):
         col1, col2 = st.columns(2)
         with col1:
             if positive_fig:
-                st.plotly_chart(positive_fig, use_container_width=True)
+                st.plotly_chart(positive_fig)
             else:
                 st.info("No Income Data")
 
         with col2:
             if negative_fig:
-                st.plotly_chart(negative_fig, use_container_width=True)
+                st.plotly_chart(negative_fig)
             else:
                 st.info("No Expense Data")

@@ -70,6 +70,6 @@ class TransactionWNIWidget(BaseWidget):
         fig = self.create_wni_chart()
 
         if fig:
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
         else:
             st.info("No expense data found for W/N/I.")
