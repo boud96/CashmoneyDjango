@@ -32,8 +32,7 @@ DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 CSRF_TRUSTED_ORIGINS = [
-    url for url in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
-    if url
+    url for url in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if url
 ]
 
 # Application definition
@@ -82,15 +81,15 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-IN_DOCKER = os.getenv('RUNNING_IN_DOCKER') == 'true'
+IN_DOCKER = os.getenv("RUNNING_IN_DOCKER") == "true"
 if IN_DOCKER:
     # We are inside Docker: use internal network names
-    db_host = os.getenv('DB_HOST')
-    db_port = os.getenv('DB_PORT')
+    db_host = os.getenv("DB_HOST")
+    db_port = os.getenv("DB_PORT")
 else:
     # We are on Local Windows: connect to localhost and the external port
-    db_host = 'localhost'
-    db_port = os.getenv('DB_EXTERNAL_PORT')
+    db_host = "localhost"
+    db_port = os.getenv("DB_EXTERNAL_PORT")
 
 DATABASES = {
     "default": {

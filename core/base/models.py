@@ -130,7 +130,7 @@ class Transaction(AbstractBaseModel):
                 query &= Q(transactiontag__tag__in=tags)
 
         field_names = cls.get_field_names()
-        fields_to_select = [name for name in field_names if name != 'transactiontag']
+        fields_to_select = [name for name in field_names if name != "transactiontag"]
         related_fields = [
             "subcategory__name",
             "subcategory__category__name",
@@ -146,11 +146,13 @@ class Transaction(AbstractBaseModel):
             )
 
         tags_subquery = Subquery(
-            cls.objects.filter(pk=models.OuterRef('pk'))
+            cls.objects.filter(pk=models.OuterRef("pk"))
             .annotate(
-                aggregated_tags=StringAgg('transactiontag__tag__name', delimiter=', ', distinct=True)
+                aggregated_tags=StringAgg(
+                    "transactiontag__tag__name", delimiter=", ", distinct=True
+                )
             )
-            .values('aggregated_tags')[:1]
+            .values("aggregated_tags")[:1]
         )
 
         annotation = {

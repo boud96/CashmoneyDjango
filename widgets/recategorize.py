@@ -8,7 +8,8 @@ from core.base.models import Transaction, CSVMapping
 from constants import URLConstants
 
 API_URL = (
-    os.getenv("API_BASE_URL", "http://localhost:8000") + URLConstants.RECATEGORIZE_TRANSACTIONS
+    os.getenv("API_BASE_URL", "http://localhost:8000")
+    + URLConstants.RECATEGORIZE_TRANSACTIONS
 )
 
 

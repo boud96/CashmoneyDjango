@@ -14,14 +14,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import (
-    CSVMapping,
-    Transaction,
-    BankAccount,
-    Keyword,
-    Subcategory,
-    Category
-)
+from .models import CSVMapping, Transaction, BankAccount, Keyword, Subcategory, Category
 
 
 class TransactionFieldsConstants:
@@ -705,7 +698,7 @@ class CreateKeywordView(View):
             except Subcategory.DoesNotExist:
                 return JsonResponse(
                     {"error": f"Subcategory with id {subcategory_id} does not exist"},
-                    status=404
+                    status=404,
                 )
 
             keyword = Keyword.objects.create(
@@ -713,7 +706,7 @@ class CreateKeywordView(View):
                 subcategory=subcategory,
                 want_need_investment=wni,
                 ignore=ignore,
-                rules=rules
+                rules=rules,
             )
 
             return JsonResponse(
@@ -723,7 +716,7 @@ class CreateKeywordView(View):
                     "description": keyword.description,
                     "subcategory": str(keyword.subcategory),
                 },
-                status=201
+                status=201,
             )
 
         except Exception as e:
@@ -755,11 +748,8 @@ class DeleteKeywordsView(View):
             deleted_count, _ = Keyword.objects.filter(id__in=ids).delete()
 
             return JsonResponse(
-                {
-                    "message": "Keywords deleted successfully",
-                    "count": deleted_count
-                },
-                status=200
+                {"message": "Keywords deleted successfully", "count": deleted_count},
+                status=200,
             )
 
         except Exception as e:
@@ -781,7 +771,7 @@ class CreateCategoryView(View):
 
             return JsonResponse(
                 {"message": "Category created successfully", "id": category.id},
-                status=201
+                status=201,
             )
         except Exception as e:
             print(traceback.format_exc())
@@ -802,7 +792,7 @@ class DeleteCategoriesView(View):
 
             return JsonResponse(
                 {"message": "Categories deleted successfully", "count": count},
-                status=200
+                status=200,
             )
         except Exception as e:
             print(traceback.format_exc())
@@ -834,7 +824,7 @@ class CreateSubcategoryView(View):
 
             return JsonResponse(
                 {"message": "Subcategory created successfully", "id": subcategory.id},
-                status=201
+                status=201,
             )
         except Exception as e:
             print(traceback.format_exc())
@@ -855,7 +845,7 @@ class DeleteSubcategoriesView(View):
 
             return JsonResponse(
                 {"message": "Subcategories deleted successfully", "count": count},
-                status=200
+                status=200,
             )
         except Exception as e:
             print(traceback.format_exc())

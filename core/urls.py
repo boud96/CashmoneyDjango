@@ -27,7 +27,7 @@ from core.base.views import (
     CreateCategoryView,
     DeleteCategoriesView,
     CreateSubcategoryView,
-    DeleteSubcategoriesView
+    DeleteSubcategoriesView,
 )
 
 urlpatterns = [

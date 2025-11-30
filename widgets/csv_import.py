@@ -8,8 +8,10 @@ from widgets.stats.dataframe import DataFrameWidget
 
 
 API_URL = (
-    os.getenv("API_BASE_URL", "http://localhost:8000") + URLConstants.IMPORT_TRANSACTIONS
+    os.getenv("API_BASE_URL", "http://localhost:8000")
+    + URLConstants.IMPORT_TRANSACTIONS
 )
+
 
 def render_success_response(json_response: dict):
     st.success("Data submitted successfully!")

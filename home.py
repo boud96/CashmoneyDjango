@@ -6,7 +6,7 @@ from widgets.edit import (
     create_category_tab_widget,
     delete_category_tab_widget,
     create_subcategory_tab_widget,
-    delete_subcategory_tab_widget
+    delete_subcategory_tab_widget,
 )
 
 from widgets.recategorize import recategorize_tab_widget
@@ -86,7 +86,9 @@ def main():
         st.info("No transactions found.")
         return
 
-    home_tab, recategorize_tab, import_tab, edit_tab = st.tabs(["Home", "Recategorize", "Import", "Edit"])
+    home_tab, recategorize_tab, import_tab, edit_tab = st.tabs(
+        ["Home", "Recategorize", "Import", "Edit"]
+    )
     with home_tab:
         # Overview Stats
         overview_stats = OverviewStatsWidget(transactions, filter_params)

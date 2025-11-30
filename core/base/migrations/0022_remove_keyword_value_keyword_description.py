@@ -4,19 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('base', '0021_alter_keyword_rules'),
+        ("base", "0021_alter_keyword_rules"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='keyword',
-            name='value',
+            model_name="keyword",
+            name="value",
         ),
         migrations.AddField(
-            model_name='keyword',
-            name='description',
+            model_name="keyword",
+            name="description",
             field=models.CharField(blank=True, max_length=128, null=True),
         ),
     ]

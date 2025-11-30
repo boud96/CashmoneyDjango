@@ -24,14 +24,13 @@ def create_initial_data(apps, schema_editor):
             email="",
             password=make_password("admin"),
             is_superuser=True,
-            is_staff=True
+            is_staff=True,
         )
-        print("Created default Superuser: admin")
 
     # 2. Create Default Bank Account
     main_account, _ = BankAccount.objects.get_or_create(
         account_name="Default bank account to be deleted / modified",
-        defaults={"account_number": "0000000000", "owners": 1}
+        defaults={"account_number": "0000000000", "owners": 1},
     )
 
     # 3. Create Categories
@@ -41,20 +40,22 @@ def create_initial_data(apps, schema_editor):
         "Subscriptions": ["Cloud services", "Internet provider"],
         "Investment": ["Traditional", "Crypto"],
         "Income": ["Job", "Other income"],
-        "Other": ["Unknown"]
+        "Other": ["Unknown"],
     }
 
     subcat_lookup = {}
     for cat_name, subcats in initial_categories.items():
         category, _ = Category.objects.get_or_create(
             name=cat_name,
-            defaults={"description": "Default category to be deleted / modified"}
+            defaults={"description": "Default category to be deleted / modified"},
         )
         for sub_name in subcats:
             sub, _ = Subcategory.objects.get_or_create(
                 name=sub_name,
                 category=category,
-                defaults={"description": "Default subcategory to be deleted / modified"}
+                defaults={
+                    "description": "Default subcategory to be deleted / modified"
+                },
             )
             subcat_lookup[sub_name] = sub
 
@@ -74,84 +75,309 @@ def create_initial_data(apps, schema_editor):
         # List of 30 transactions
         new_transactions_data = [
             # Income (Job) - Total 3
-            (random.randint(5, 25), 3000.00, "USD", subcat_lookup.get("Job"), "Tech Corp Inc.", "Incoming",
-             "Monthly Salary", "other"),
-            (random.randint(35, 65), 3000.00, "USD", subcat_lookup.get("Job"), "Tech Corp Inc.", "Incoming",
-             "Monthly Salary", "other"),
-            (random.randint(75, 105), 3000.00, "USD", subcat_lookup.get("Job"), "Tech Corp Inc.", "Incoming",
-             "Monthly Salary", "other"),
-
+            (
+                random.randint(5, 25),
+                3000.00,
+                "USD",
+                subcat_lookup.get("Job"),
+                "Tech Corp Inc.",
+                "Incoming",
+                "Monthly Salary",
+                "other",
+            ),
+            (
+                random.randint(35, 65),
+                3000.00,
+                "USD",
+                subcat_lookup.get("Job"),
+                "Tech Corp Inc.",
+                "Incoming",
+                "Monthly Salary",
+                "other",
+            ),
+            (
+                random.randint(75, 105),
+                3000.00,
+                "USD",
+                subcat_lookup.get("Job"),
+                "Tech Corp Inc.",
+                "Incoming",
+                "Monthly Salary",
+                "other",
+            ),
             # Groceries (Expense) - Total 6
-            (random.randint(1, 10), -150.50, "USD", subcat_lookup.get("Groceries"), "Supermarket A", "Card Payment", "",
-             "need"),
-            (random.randint(10, 20), -55.00, "USD", subcat_lookup.get("Groceries"), "Local Market", "Card Payment", "",
-             "need"),
-            (random.randint(25, 40), -105.75, "USD", subcat_lookup.get("Groceries"), "Supermarket B", "Card Payment",
-             "", "need"),
-            (random.randint(50, 65), -88.90, "USD", subcat_lookup.get("Groceries"), "Supermarket A", "Card Payment", "",
-             "need"),
-            (random.randint(70, 85), -22.40, "USD", subcat_lookup.get("Groceries"), "Local Market", "Card Payment", "",
-             "need"),
-            (random.randint(90, 110), -134.10, "USD", subcat_lookup.get("Groceries"), "Supermarket B", "Card Payment",
-             "", "need"),
-
+            (
+                random.randint(1, 10),
+                -150.50,
+                "USD",
+                subcat_lookup.get("Groceries"),
+                "Supermarket A",
+                "Card Payment",
+                "",
+                "need",
+            ),
+            (
+                random.randint(10, 20),
+                -55.00,
+                "USD",
+                subcat_lookup.get("Groceries"),
+                "Local Market",
+                "Card Payment",
+                "",
+                "need",
+            ),
+            (
+                random.randint(25, 40),
+                -105.75,
+                "USD",
+                subcat_lookup.get("Groceries"),
+                "Supermarket B",
+                "Card Payment",
+                "",
+                "need",
+            ),
+            (
+                random.randint(50, 65),
+                -88.90,
+                "USD",
+                subcat_lookup.get("Groceries"),
+                "Supermarket A",
+                "Card Payment",
+                "",
+                "need",
+            ),
+            (
+                random.randint(70, 85),
+                -22.40,
+                "USD",
+                subcat_lookup.get("Groceries"),
+                "Local Market",
+                "Card Payment",
+                "",
+                "need",
+            ),
+            (
+                random.randint(90, 110),
+                -134.10,
+                "USD",
+                subcat_lookup.get("Groceries"),
+                "Supermarket B",
+                "Card Payment",
+                "",
+                "need",
+            ),
             # Restaurants (Expense) - Total 5
-            (random.randint(2, 10), -85.00, "USD", subcat_lookup.get("Restaurants"), "Italian Bistro", "Card Payment",
-             "Dinner while on vacation", "want"),
-            (random.randint(15, 25), -35.50, "USD", subcat_lookup.get("Restaurants"), "Coffee Shop", "Card Payment",
-             "Quick lunch", "want"),
-            (random.randint(30, 40), -120.00, "USD", subcat_lookup.get("Restaurants"), "Steak House", "Card Payment",
-             "", "want"),
-            (random.randint(45, 55), -25.00, "USD", subcat_lookup.get("Restaurants"), "Pizzeria", "Card Payment", "",
-             "want"),
-            (random.randint(60, 70), -50.99, "USD", subcat_lookup.get("Restaurants"), "Sushi Place", "Card Payment", "",
-             "want"),
-
+            (
+                random.randint(2, 10),
+                -85.00,
+                "USD",
+                subcat_lookup.get("Restaurants"),
+                "Italian Bistro",
+                "Card Payment",
+                "Dinner while on vacation",
+                "want",
+            ),
+            (
+                random.randint(15, 25),
+                -35.50,
+                "USD",
+                subcat_lookup.get("Restaurants"),
+                "Coffee Shop",
+                "Card Payment",
+                "Quick lunch",
+                "want",
+            ),
+            (
+                random.randint(30, 40),
+                -120.00,
+                "USD",
+                subcat_lookup.get("Restaurants"),
+                "Steak House",
+                "Card Payment",
+                "",
+                "want",
+            ),
+            (
+                random.randint(45, 55),
+                -25.00,
+                "USD",
+                subcat_lookup.get("Restaurants"),
+                "Pizzeria",
+                "Card Payment",
+                "",
+                "want",
+            ),
+            (
+                random.randint(60, 70),
+                -50.99,
+                "USD",
+                subcat_lookup.get("Restaurants"),
+                "Sushi Place",
+                "Card Payment",
+                "",
+                "want",
+            ),
             # Gas (Expense) - Total 4
-            (random.randint(3, 15), -60.00, "USD", subcat_lookup.get("Gas"), "Shell Station", "Card Payment", "",
-             "need"),
-            (random.randint(15, 30), -58.50, "USD", subcat_lookup.get("Gas"), "Gas Station X", "Card Payment", "",
-             "need"),
-            (random.randint(35, 55), -65.20, "USD", subcat_lookup.get("Gas"), "Gas Station Y", "Card Payment", "",
-             "need"),
-            (random.randint(65, 95), -59.90, "USD", subcat_lookup.get("Gas"), "Shell Station", "Card Payment", "",
-             "need"),
-
+            (
+                random.randint(3, 15),
+                -60.00,
+                "USD",
+                subcat_lookup.get("Gas"),
+                "Shell Station",
+                "Card Payment",
+                "",
+                "need",
+            ),
+            (
+                random.randint(15, 30),
+                -58.50,
+                "USD",
+                subcat_lookup.get("Gas"),
+                "Gas Station X",
+                "Card Payment",
+                "",
+                "need",
+            ),
+            (
+                random.randint(35, 55),
+                -65.20,
+                "USD",
+                subcat_lookup.get("Gas"),
+                "Gas Station Y",
+                "Card Payment",
+                "",
+                "need",
+            ),
+            (
+                random.randint(65, 95),
+                -59.90,
+                "USD",
+                subcat_lookup.get("Gas"),
+                "Shell Station",
+                "Card Payment",
+                "",
+                "need",
+            ),
             # Public Transport (Expense) - Total 2
-            (random.randint(10, 50), -15.00, "USD", subcat_lookup.get("Public transport"), "City Transit",
-             "Card Payment", "Monthly pass", "need"),
-            (random.randint(60, 110), -4.50, "USD", subcat_lookup.get("Public transport"), "Bus Ticket Machine",
-             "Card Payment", "", "need"),
-
+            (
+                random.randint(10, 50),
+                -15.00,
+                "USD",
+                subcat_lookup.get("Public transport"),
+                "City Transit",
+                "Card Payment",
+                "Monthly pass",
+                "need",
+            ),
+            (
+                random.randint(60, 110),
+                -4.50,
+                "USD",
+                subcat_lookup.get("Public transport"),
+                "Bus Ticket Machine",
+                "Card Payment",
+                "",
+                "need",
+            ),
             # Cloud services (Subscription) - Total 2
-            (random.randint(5, 100), -9.99, "USD", subcat_lookup.get("Cloud services"), "Cloud Provider Z",
-             "Direct Debit", "Storage subscription", "want"),
-            (random.randint(10, 115), -19.99, "USD", subcat_lookup.get("Cloud services"), "Streaming Service A",
-             "Direct Debit", "Entertainment subscription", "want"),
-
+            (
+                random.randint(5, 100),
+                -9.99,
+                "USD",
+                subcat_lookup.get("Cloud services"),
+                "Cloud Provider Z",
+                "Direct Debit",
+                "Storage subscription",
+                "want",
+            ),
+            (
+                random.randint(10, 115),
+                -19.99,
+                "USD",
+                subcat_lookup.get("Cloud services"),
+                "Streaming Service A",
+                "Direct Debit",
+                "Entertainment subscription",
+                "want",
+            ),
             # Traditional Investment (Investment) - Total 3
-            (random.randint(10, 110), -200.00, "USD", subcat_lookup.get("Traditional"), "Brokerage Firm", "Transfer",
-             "Monthly investment", "investment"),
-            (random.randint(30, 90), -500.00, "USD", subcat_lookup.get("Traditional"), "Brokerage Firm", "Transfer",
-             "Bonus investment", "investment"),
-            (random.randint(5, 60), -100.00, "USD", subcat_lookup.get("Traditional"), "Brokerage Firm", "Transfer",
-             "Monthly investment", "investment"),
-
+            (
+                random.randint(10, 110),
+                -200.00,
+                "USD",
+                subcat_lookup.get("Traditional"),
+                "Brokerage Firm",
+                "Transfer",
+                "Monthly investment",
+                "investment",
+            ),
+            (
+                random.randint(30, 90),
+                -500.00,
+                "USD",
+                subcat_lookup.get("Traditional"),
+                "Brokerage Firm",
+                "Transfer",
+                "Bonus investment",
+                "investment",
+            ),
+            (
+                random.randint(5, 60),
+                -100.00,
+                "USD",
+                subcat_lookup.get("Traditional"),
+                "Brokerage Firm",
+                "Transfer",
+                "Monthly investment",
+                "investment",
+            ),
             # Other income (Income) - Total 2
-            (random.randint(30, 100), 150.00, "USD", subcat_lookup.get("Other income"), "Freelance Client", "Incoming",
-             "Small project payment", "other"),
-            (random.randint(5, 70), 50.00, "USD", subcat_lookup.get("Other income"), "Refund", "Incoming",
-             "Item return", "other"),
-
+            (
+                random.randint(30, 100),
+                150.00,
+                "USD",
+                subcat_lookup.get("Other income"),
+                "Freelance Client",
+                "Incoming",
+                "Small project payment",
+                "other",
+            ),
+            (
+                random.randint(5, 70),
+                50.00,
+                "USD",
+                subcat_lookup.get("Other income"),
+                "Refund",
+                "Incoming",
+                "Item return",
+                "other",
+            ),
             # Car maintenance (Expense) - Total 1
-            (random.randint(10, 120), -180.00, "USD", subcat_lookup.get("Car maintenance"), "Auto Shop", "Card Payment",
-             "Oil change", "need"),
+            (
+                random.randint(10, 120),
+                -180.00,
+                "USD",
+                subcat_lookup.get("Car maintenance"),
+                "Auto Shop",
+                "Card Payment",
+                "Oil change",
+                "need",
+            ),
         ]
 
         all_transactions = []
 
         # Create the transactions from the list
-        for days_ago, amount, currency, subcategory, counterparty, txn_type, my_note, want_need in new_transactions_data:
+        for (
+            days_ago,
+            amount,
+            currency,
+            subcategory,
+            counterparty,
+            txn_type,
+            my_note,
+            want_need,
+        ) in new_transactions_data:
             # Ensure date is within the last 4 months (120 days)
             txn_date = today - timedelta(days=days_ago)
             if txn_date < four_months_ago:
@@ -167,21 +393,32 @@ def create_initial_data(apps, schema_editor):
                 counterparty_name=counterparty,
                 transaction_type=txn_type,
                 my_note=my_note if my_note else None,  # Set to None if empty string
-                want_need_investment=want_need
+                want_need_investment=want_need,
             )
             all_transactions.append(new_txn)
 
         # Link the specific Holiday tag to one of the Restaurant transactions
         # Finding the first restaurant transaction with the "Dinner while on vacation" note for tagging
-        holiday_txn = next((txn for txn in all_transactions if txn.my_note == "Dinner while on vacation"), None)
+        holiday_txn = next(
+            (
+                txn
+                for txn in all_transactions
+                if txn.my_note == "Dinner while on vacation"
+            ),
+            None,
+        )
         if holiday_txn:
-            TransactionTag.objects.create(transaction=holiday_txn, tag=tag_lookup["Holiday"])
+            TransactionTag.objects.create(
+                transaction=holiday_txn, tag=tag_lookup["Holiday"]
+            )
 
         # Link the "Example Data" tag to ALL transactions
         example_tag = tag_lookup["Example Data"]
         for txn in all_transactions:
             # Check if tag is already linked to avoid duplicates in case of running the migration multiple times without proper cleanup
-            if not TransactionTag.objects.filter(transaction=txn, tag=example_tag).exists():
+            if not TransactionTag.objects.filter(
+                transaction=txn, tag=example_tag
+            ).exists():
                 TransactionTag.objects.create(transaction=txn, tag=example_tag)
 
         print(f"Created {len(all_transactions)} sample transactions and tags.")

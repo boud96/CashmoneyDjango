@@ -14,6 +14,7 @@ API_URL_DELETE_CAT = BASE_URL + URLConstants.DELETE_CATEGORIES
 API_URL_CREATE_SUB = BASE_URL + URLConstants.CREATE_SUBCATEGORY
 API_URL_DELETE_SUB = BASE_URL + URLConstants.DELETE_SUBCATEGORIES
 
+
 def edit_tab_widget():
     # --- Data Fetching ---
     try:
@@ -36,13 +37,10 @@ def edit_tab_widget():
     # --- Form Structure ---
     st.title("Create New Keyword")
 
-    with st.form(key='keyword_form'):
+    with st.form(key="keyword_form"):
         st.header("Keyword Details")
 
-        description = st.text_input(
-            label="Description",
-            max_chars=128
-        )
+        description = st.text_input(label="Description", max_chars=128)
 
         subcategory_col, wni_col = st.columns(2)
         with subcategory_col:
@@ -50,7 +48,7 @@ def edit_tab_widget():
                 label="Subcategory",
                 options=subcategory_display_options,
                 index=0,
-                key='subcategory_select'
+                key="subcategory_select",
             )
 
         with wni_col:
@@ -58,21 +56,20 @@ def edit_tab_widget():
                 label="Want/Need/Investment (WNI)",
                 options=wni_labels,
                 index=0,
-                key='wni_select'
+                key="wni_select",
             )
 
-        ignore = st.checkbox(
-            label="Mark as ignored",
-            value=False
-        )
+        ignore = st.checkbox(label="Mark as ignored", value=False)
 
         st.subheader("Rules for Matching")
         st.markdown("Enter a single word or phrase per cell.")
 
-        default_rules_data = pd.DataFrame({
-            ModelConstants.INCLUDE_RULE_KEY: pd.Series(dtype="str"),
-            ModelConstants.EXCLUDE_RULE_KEY: pd.Series(dtype="str"),
-        })
+        default_rules_data = pd.DataFrame(
+            {
+                ModelConstants.INCLUDE_RULE_KEY: pd.Series(dtype="str"),
+                ModelConstants.EXCLUDE_RULE_KEY: pd.Series(dtype="str"),
+            }
+        )
 
         rules_df = st.data_editor(
             data=default_rules_data,
@@ -84,10 +81,10 @@ def edit_tab_widget():
                 ModelConstants.EXCLUDE_RULE_KEY: st.column_config.TextColumn(
                     f"{ModelConstants.EXCLUDE_RULE_KEY.capitalize()} Keywords",
                     help="Keywords a transaction must NOT contain (one per row).",
-                )
+                ),
             },
             num_rows="dynamic",
-            use_container_width=True
+            use_container_width=True,
         )
 
         is_keyword_submitted = st.form_submit_button("Submit")
@@ -104,15 +101,22 @@ def edit_tab_widget():
 
         if not description:
             st.error("Please provide a Description.")
-        elif subcategory_id_for_payload is None or selected_subcategory_label == "--- Select Subcategory ---":
+        elif (
+            subcategory_id_for_payload is None
+            or selected_subcategory_label == "--- Select Subcategory ---"
+        ):
             st.error("Please select a valid Subcategory.")
         else:
             final_rules = {
                 ModelConstants.INCLUDE_RULE_KEY: [
-                    str(item).strip() for item in rules_df[ModelConstants.INCLUDE_RULE_KEY] if item
+                    str(item).strip()
+                    for item in rules_df[ModelConstants.INCLUDE_RULE_KEY]
+                    if item
                 ],
                 ModelConstants.EXCLUDE_RULE_KEY: [
-                    str(item).strip() for item in rules_df[ModelConstants.EXCLUDE_RULE_KEY] if item
+                    str(item).strip()
+                    for item in rules_df[ModelConstants.EXCLUDE_RULE_KEY]
+                    if item
                 ],
             }
 
@@ -125,12 +129,16 @@ def edit_tab_widget():
             }
 
             try:
-                response = requests.post(API_URL_CREATE, json=keyword_payload, timeout=5)
+                response = requests.post(
+                    API_URL_CREATE, json=keyword_payload, timeout=5
+                )
 
                 if response.status_code == 201:
                     st.success(f"Keyword '{description}' created successfully.")
                 else:
-                    st.error(f"Failed to create keyword. Status Code: {response.status_code}")
+                    st.error(
+                        f"Failed to create keyword. Status Code: {response.status_code}"
+                    )
                     try:
                         st.json(response.json())
                     except Exception:
@@ -143,7 +151,9 @@ def edit_tab_widget():
 def delete_keyword_tab_widget():
     # --- Data Fetching ---
     try:
-        keywords = Keyword.objects.all().select_related('subcategory').order_by('description')
+        keywords = (
+            Keyword.objects.all().select_related("subcategory").order_by("description")
+        )
 
         if not keywords.exists():
             st.info("No keywords defined.")
@@ -158,15 +168,17 @@ def delete_keyword_tab_widget():
             include_str = ", ".join(rules.get("include", []))
             exclude_str = ", ".join(rules.get("exclude", []))
 
-            data.append({
-                "Select": False,
-                "ID": str(k.id),
-                "Description": k.description,
-                "Subcategory": str(k.subcategory),
-                "WNI": k.get_want_need_investment_display() or "-",
-                "Include": include_str,
-                "Exclude": exclude_str,
-            })
+            data.append(
+                {
+                    "Select": False,
+                    "ID": str(k.id),
+                    "Description": k.description,
+                    "Subcategory": str(k.subcategory),
+                    "WNI": k.get_want_need_investment_display() or "-",
+                    "Include": include_str,
+                    "Exclude": exclude_str,
+                }
+            )
 
         df = pd.DataFrame(data)
 
@@ -178,38 +190,27 @@ def delete_keyword_tab_widget():
     st.title("Delete Keywords")
     st.markdown("Select the keywords you wish to remove from the database.")
 
-    with st.form(key='delete_keyword_form'):
-
+    with st.form(key="delete_keyword_form"):
         # Configure the editor
         edited_df = st.data_editor(
             data=df,
             column_config={
                 "Select": st.column_config.CheckboxColumn(
-                    "Delete?",
-                    default=False,
-                    width=100,
-                    pinned=True
+                    "Delete?", default=False, width=100, pinned=True
                 ),
                 "ID": None,
                 "Description": st.column_config.TextColumn(
-                    "Description",
-                    disabled=True
+                    "Description", disabled=True
                 ),
                 "Subcategory": st.column_config.TextColumn(
-                    "Subcategory",
-                    disabled=True
+                    "Subcategory", disabled=True
                 ),
-                "WNI": st.column_config.TextColumn(
-                    "WNI",
-                    disabled=True
-                ),
+                "WNI": st.column_config.TextColumn("WNI", disabled=True),
                 "Include": st.column_config.TextColumn(
-                    "Include keywords",
-                    disabled=True
+                    "Include keywords", disabled=True
                 ),
                 "Exclude": st.column_config.TextColumn(
-                    "Exclude keywords",
-                    disabled=True
+                    "Exclude keywords", disabled=True
                 ),
             },
             hide_index=True,
@@ -219,7 +220,9 @@ def delete_keyword_tab_widget():
         selected_rows = edited_df[edited_df["Select"] == True]
         count = len(selected_rows)
 
-        delete_button_label = f"Delete {count} Selected Keywords" if count > 0 else "Delete Selected"
+        delete_button_label = (
+            f"Delete {count} Selected Keywords" if count > 0 else "Delete Selected"
+        )
         is_delete_submitted = st.form_submit_button(delete_button_label, type="primary")
 
     # --- Submission Logic ---
@@ -240,7 +243,9 @@ def delete_keyword_tab_widget():
                     # Rerun to refresh the table
                     st.rerun()
                 else:
-                    st.error(f"Failed to delete keywords. Status Code: {response.status_code}")
+                    st.error(
+                        f"Failed to delete keywords. Status Code: {response.status_code}"
+                    )
                     try:
                         st.json(response.json())
                     except Exception:
@@ -249,21 +254,18 @@ def delete_keyword_tab_widget():
             except requests.exceptions.RequestException as e:
                 st.error(f"Connection Error: Could not reach Django backend. {e}")
 
+
 def create_category_tab_widget():
     # --- Form Structure ---
     st.title("Create New Category")
 
-    with st.form(key='create_category_form'):
+    with st.form(key="create_category_form"):
         st.header("Category Details")
 
-        name = st.text_input(
-            label="Name",
-            max_chars=128
-        )
+        name = st.text_input(label="Name", max_chars=128)
 
         description = st.text_area(
-            label="Description",
-            help="Optional description for the category"
+            label="Description", help="Optional description for the category"
         )
 
         is_submitted = st.form_submit_button("Submit")
@@ -273,10 +275,7 @@ def create_category_tab_widget():
         if not name:
             st.error("Please provide a Category Name.")
         else:
-            payload = {
-                "name": name,
-                "description": description
-            }
+            payload = {"name": name, "description": description}
 
             try:
                 response = requests.post(API_URL_CREATE_CAT, json=payload, timeout=5)
@@ -284,7 +283,9 @@ def create_category_tab_widget():
                 if response.status_code == 201:
                     st.success(f"Category '{name}' created successfully.")
                 else:
-                    st.error(f"Failed to create category. Status Code: {response.status_code}")
+                    st.error(
+                        f"Failed to create category. Status Code: {response.status_code}"
+                    )
                     try:
                         st.json(response.json())
                     except Exception:
@@ -297,7 +298,7 @@ def create_category_tab_widget():
 def delete_category_tab_widget():
     # --- Data Fetching ---
     try:
-        categories = Category.objects.all().order_by('name')
+        categories = Category.objects.all().order_by("name")
 
         if not categories.exists():
             st.info("No categories defined.")
@@ -305,12 +306,14 @@ def delete_category_tab_widget():
 
         data = []
         for c in categories:
-            data.append({
-                "Select": False,
-                "ID": str(c.id),
-                "Name": c.name,
-                "Description": c.description or "",
-            })
+            data.append(
+                {
+                    "Select": False,
+                    "ID": str(c.id),
+                    "Name": c.name,
+                    "Description": c.description or "",
+                }
+            )
 
         df = pd.DataFrame(data)
 
@@ -322,24 +325,17 @@ def delete_category_tab_widget():
     st.title("Delete Categories")
     st.markdown("Select the categories you wish to remove from the database.")
 
-    with st.form(key='delete_category_form'):
+    with st.form(key="delete_category_form"):
         edited_df = st.data_editor(
             data=df,
             column_config={
                 "Select": st.column_config.CheckboxColumn(
-                    "Delete?",
-                    default=False,
-                    width=100,
-                    pinned=True
+                    "Delete?", default=False, width=100, pinned=True
                 ),
                 "ID": None,
-                "Name": st.column_config.TextColumn(
-                    "Name",
-                    disabled=True
-                ),
+                "Name": st.column_config.TextColumn("Name", disabled=True),
                 "Description": st.column_config.TextColumn(
-                    "Description",
-                    disabled=True
+                    "Description", disabled=True
                 ),
             },
             hide_index=True,
@@ -349,7 +345,9 @@ def delete_category_tab_widget():
         selected_rows = edited_df[edited_df["Select"] == True]
         count = len(selected_rows)
 
-        delete_button_label = f"Delete {count} Selected Categories" if count > 0 else "Delete Selected"
+        delete_button_label = (
+            f"Delete {count} Selected Categories" if count > 0 else "Delete Selected"
+        )
         is_delete_submitted = st.form_submit_button(delete_button_label, type="primary")
 
     # --- Submission Logic ---
@@ -367,7 +365,9 @@ def delete_category_tab_widget():
                     st.success(f"Successfully deleted {count} categories.")
                     st.rerun()
                 else:
-                    st.error(f"Failed to delete categories. Status Code: {response.status_code}")
+                    st.error(
+                        f"Failed to delete categories. Status Code: {response.status_code}"
+                    )
                     try:
                         st.json(response.json())
                     except Exception:
@@ -392,23 +392,17 @@ def create_subcategory_tab_widget():
     # --- Form Structure ---
     st.title("Create New Subcategory")
 
-    with st.form(key='create_subcategory_form'):
+    with st.form(key="create_subcategory_form"):
         st.header("Subcategory Details")
 
-        name = st.text_input(
-            label="Name",
-            max_chars=128
-        )
+        name = st.text_input(label="Name", max_chars=128)
 
         selected_category_label = st.selectbox(
-            label="Parent Category",
-            options=category_display_options,
-            index=0
+            label="Parent Category", options=category_display_options, index=0
         )
 
         description = st.text_area(
-            label="Description",
-            help="Optional description for the subcategory"
+            label="Description", help="Optional description for the subcategory"
         )
 
         is_submitted = st.form_submit_button("Submit")
@@ -425,7 +419,7 @@ def create_subcategory_tab_widget():
             payload = {
                 "name": name,
                 "description": description,
-                "category_id": category_id_for_payload
+                "category_id": category_id_for_payload,
             }
 
             try:
@@ -434,7 +428,9 @@ def create_subcategory_tab_widget():
                 if response.status_code == 201:
                     st.success(f"Subcategory '{name}' created successfully.")
                 else:
-                    st.error(f"Failed to create subcategory. Status Code: {response.status_code}")
+                    st.error(
+                        f"Failed to create subcategory. Status Code: {response.status_code}"
+                    )
                     try:
                         st.json(response.json())
                     except Exception:
@@ -447,7 +443,11 @@ def create_subcategory_tab_widget():
 def delete_subcategory_tab_widget():
     # --- Data Fetching ---
     try:
-        subcategories = Subcategory.objects.all().select_related('category').order_by('category__name', 'name')
+        subcategories = (
+            Subcategory.objects.all()
+            .select_related("category")
+            .order_by("category__name", "name")
+        )
 
         if not subcategories.exists():
             st.info("No subcategories defined.")
@@ -455,13 +455,15 @@ def delete_subcategory_tab_widget():
 
         data = []
         for s in subcategories:
-            data.append({
-                "Select": False,
-                "ID": str(s.id),
-                "Name": s.name,
-                "Category": s.category.name,
-                "Description": s.description or "",
-            })
+            data.append(
+                {
+                    "Select": False,
+                    "ID": str(s.id),
+                    "Name": s.name,
+                    "Category": s.category.name,
+                    "Description": s.description or "",
+                }
+            )
 
         df = pd.DataFrame(data)
 
@@ -473,28 +475,20 @@ def delete_subcategory_tab_widget():
     st.title("Delete Subcategories")
     st.markdown("Select the subcategories you wish to remove from the database.")
 
-    with st.form(key='delete_subcategory_form'):
+    with st.form(key="delete_subcategory_form"):
         edited_df = st.data_editor(
             data=df,
             column_config={
                 "Select": st.column_config.CheckboxColumn(
-                    "Delete?",
-                    default=False,
-                    width=100,
-                    pinned=True
+                    "Delete?", default=False, width=100, pinned=True
                 ),
                 "ID": None,
-                "Name": st.column_config.TextColumn(
-                    "Name",
-                    disabled=True
-                ),
+                "Name": st.column_config.TextColumn("Name", disabled=True),
                 "Category": st.column_config.TextColumn(
-                    "Parent Category",
-                    disabled=True
+                    "Parent Category", disabled=True
                 ),
                 "Description": st.column_config.TextColumn(
-                    "Description",
-                    disabled=True
+                    "Description", disabled=True
                 ),
             },
             hide_index=True,
@@ -504,7 +498,9 @@ def delete_subcategory_tab_widget():
         selected_rows = edited_df[edited_df["Select"] == True]
         count = len(selected_rows)
 
-        delete_button_label = f"Delete {count} Selected Subcategories" if count > 0 else "Delete Selected"
+        delete_button_label = (
+            f"Delete {count} Selected Subcategories" if count > 0 else "Delete Selected"
+        )
         is_delete_submitted = st.form_submit_button(delete_button_label, type="primary")
 
     # --- Submission Logic ---
@@ -522,7 +518,9 @@ def delete_subcategory_tab_widget():
                     st.success(f"Successfully deleted {count} subcategories.")
                     st.rerun()
                 else:
-                    st.error(f"Failed to delete subcategories. Status Code: {response.status_code}")
+                    st.error(
+                        f"Failed to delete subcategories. Status Code: {response.status_code}"
+                    )
                     try:
                         st.json(response.json())
                     except Exception:

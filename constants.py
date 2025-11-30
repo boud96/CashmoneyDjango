@@ -9,12 +9,13 @@ class URLConstants:
     DELETE_CATEGORIES = "delete-categories/"
     DELETE_SUBCATEGORIES = "delete-subcategories/"
 
+
 class ModelConstants:
     WNI_CHOICES = [
         ("want", "Want"),
         ("investment", "Investment"),
         ("need", "Need"),
         ("other", "Other"),
-]
+    ]
     INCLUDE_RULE_KEY = "include"
     EXCLUDE_RULE_KEY = "exclude"
