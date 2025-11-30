@@ -12,6 +12,8 @@ class URLConstants:
     DELETE_BANK_ACCOUNTS = "delete-bank-accounts/"
     CREATE_CSV_MAPPING = "create-csv-mapping/"
     DELETE_CSV_MAPPINGS = "delete-csv-mappings/"
+    CREATE_TAG = "create-tag/"
+    DELETE_TAGS = "delete-tags/"
 
 
 class ModelConstants:

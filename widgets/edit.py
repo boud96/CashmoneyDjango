@@ -4,7 +4,14 @@ import requests
 import streamlit as st
 
 from constants import URLConstants, ModelConstants
-from core.base.models import Subcategory, Keyword, Category, BankAccount, CSVMapping
+from core.base.models import (
+    Subcategory,
+    Keyword,
+    Category,
+    BankAccount,
+    CSVMapping,
+    Tag,
+)
 
 BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8123/")
 API_URL_CREATE_KEYWORD = BASE_URL + URLConstants.CREATE_KEYWORDS
@@ -17,6 +24,8 @@ API_URL_CREATE_BANK_ACCOUNT = BASE_URL + URLConstants.CREATE_BANK_ACCOUNT
 API_URL_DELETE_BANK_ACCOUNTS = BASE_URL + URLConstants.DELETE_BANK_ACCOUNTS
 API_URL_CREATE_CSV_MAPPING = BASE_URL + URLConstants.CREATE_CSV_MAPPING
 API_URL_DELETE_CSV_MAPPINGS = BASE_URL + URLConstants.DELETE_CSV_MAPPINGS
+API_URL_CREATE_TAG = BASE_URL + URLConstants.CREATE_TAG
+API_URL_DELETE_TAGS = BASE_URL + URLConstants.DELETE_TAGS
 
 
 def edit_tab_widget():
@@ -248,8 +257,7 @@ def delete_keyword_tab_widget():
 
                 if response.status_code == 200:
                     st.success(f"Successfully deleted {count} keywords.")
-                    # Rerun to refresh the table
-                    st.rerun()
+                    st.rerun(scope="fragment")
                 else:
                     st.error(
                         f"Failed to delete keywords. Status Code: {response.status_code}"
@@ -376,7 +384,7 @@ def delete_category_tab_widget():
 
                 if response.status_code == 200:
                     st.success(f"Successfully deleted {count} categories.")
-                    st.rerun()
+                    st.rerun(scope="fragment")
                 else:
                     st.error(
                         f"Failed to delete categories. Status Code: {response.status_code}"
@@ -534,7 +542,7 @@ def delete_subcategory_tab_widget():
 
                 if response.status_code == 200:
                     st.success(f"Successfully deleted {count} subcategories.")
-                    st.rerun()
+                    st.rerun(scope="fragment")
                 else:
                     st.error(
                         f"Failed to delete subcategories. Status Code: {response.status_code}"
@@ -672,7 +680,7 @@ def delete_bank_account_tab_widget():
 
                 if response.status_code == 200:
                     st.success(f"Successfully deleted {count} bank accounts.")
-                    st.rerun()
+                    st.rerun(scope="fragment")
                 else:
                     st.error(
                         f"Failed to delete bank accounts. Status Code: {response.status_code}"
@@ -780,7 +788,6 @@ def create_csv_mapping_tab_widget():
                 )
             },
             num_rows="dynamic",
-            use_container_width=True,
             key="other_notes_editor",
         )
 
@@ -902,7 +909,6 @@ def delete_csv_mapping_tab_widget():
                 ),
             },
             hide_index=True,
-            use_container_width=True,
         )
 
         selected_rows = edited_df[edited_df["Select"]]
@@ -930,7 +936,7 @@ def delete_csv_mapping_tab_widget():
 
                 if response.status_code == 200:
                     st.success(f"Successfully deleted {count} mappings.")
-                    st.rerun()
+                    st.rerun(scope="fragment")
                 else:
                     st.error(
                         f"Failed to delete mappings. Status Code: {response.status_code}"
@@ -942,3 +948,122 @@ def delete_csv_mapping_tab_widget():
 
             except requests.exceptions.RequestException as e:
                 st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+
+def create_tag_tab_widget():
+    # --- Form Structure ---
+    st.title("Create New Tag")
+
+    with st.form(key="create_tag_form"):
+        st.header("Tag Details")
+
+        name = st.text_input(label="Name", max_chars=128)
+
+        description = st.text_area(
+            label="Description", help="Optional description for the tag"
+        )
+
+        is_submitted = st.form_submit_button("Submit", key="submit_create_tag")
+
+    # --- Submission Logic ---
+    if is_submitted:
+        if not name:
+            st.error("Please provide a Tag Name.")
+        else:
+            payload = {"name": name, "description": description}
+
+            try:
+                response = requests.post(API_URL_CREATE_TAG, json=payload, timeout=5)
+
+                if response.status_code == 201:
+                    st.success(f"Tag '{name}' created successfully.")
+                else:
+                    st.error(
+                        f"Failed to create tag. Status Code: {response.status_code}"
+                    )
+                    try:
+                        st.json(response.json())
+                    except Exception:
+                        st.write(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+
+def delete_tag_tab_widget():
+    st.title("Delete Tags")
+    st.markdown("Select the tags you wish to remove from the database.")
+
+    # --- Data Fetching ---
+    try:
+        tags = Tag.objects.all().order_by("name")
+
+        if not tags.exists():
+            st.info("No tags defined in the database.")
+            return
+
+        data = []
+        for t in tags:
+            data.append(
+                {
+                    "Select": False,
+                    "ID": str(t.id),
+                    "Name": t.name,
+                    "Description": t.description or "",
+                }
+            )
+
+        df = pd.DataFrame(data)
+
+    except Exception as e:
+        st.error(f"Connection Error: Could not reach Django backend. {e}")
+        return
+
+    # --- Form Structure ---
+    with st.form(key="delete_tag_form"):
+        edited_df = st.data_editor(
+            data=df,
+            column_config={
+                "Select": st.column_config.CheckboxColumn(
+                    "Delete?", default=False, width=80, pinned=True
+                ),
+                "ID": None,
+                "Name": st.column_config.TextColumn("Name", disabled=True),
+                "Description": st.column_config.TextColumn(
+                    "Description", disabled=True
+                ),
+            },
+            hide_index=True,
+        )
+
+        selected_rows = edited_df[edited_df["Select"]]
+        count = len(selected_rows)
+
+        delete_button_label = (
+            f"Delete {count} Selected Tags" if count > 0 else "Delete Selected"
+        )
+        is_delete_submitted = st.form_submit_button(
+            delete_button_label, type="primary", key="submit_delete_tag"
+        )
+
+    # --- Submission Logic ---
+    if is_delete_submitted:
+        if count == 0:
+            st.warning("Please select at least one tag to delete.")
+        else:
+            ids_to_delete = selected_rows["ID"].tolist()
+            payload = {"ids": ids_to_delete}
+
+            try:
+                response = requests.post(API_URL_DELETE_TAGS, json=payload, timeout=10)
+
+                if response.status_code == 200:
+                    st.toast(f"✅ Successfully deleted {count} tags.")
+
+                    st.rerun(scope="fragment")
+                else:
+                    st.error(
+                        f"Failed to delete tags. Status Code: {response.status_code}"
+                    )
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: {e}")

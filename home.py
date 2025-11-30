@@ -11,6 +11,8 @@ from widgets.edit import (
     delete_bank_account_tab_widget,
     create_csv_mapping_tab_widget,
     delete_csv_mapping_tab_widget,
+    create_tag_tab_widget,
+    delete_tag_tab_widget,
 )
 
 from widgets.recategorize import recategorize_tab_widget
@@ -29,6 +31,38 @@ from widgets.stats.wni_sunburst import TransactionWNIWidget
 from widgets.stats.overview_stats import OverviewStatsWidget
 import os
 from dotenv import load_dotenv
+
+
+@st.fragment
+def manage_keywords_section():
+    edit_tab_widget()
+    delete_keyword_tab_widget()
+
+
+@st.fragment
+def manage_categories_section():
+    create_category_tab_widget()
+    delete_category_tab_widget()
+    create_subcategory_tab_widget()
+    delete_subcategory_tab_widget()
+
+
+@st.fragment
+def manage_bank_accounts_section():
+    create_bank_account_tab_widget()
+    delete_bank_account_tab_widget()
+
+
+@st.fragment
+def manage_csv_mappings_section():
+    create_csv_mapping_tab_widget()
+    delete_csv_mapping_tab_widget()
+
+
+@st.fragment
+def manage_tags_section():
+    create_tag_tab_widget()
+    delete_tag_tab_widget()
 
 
 def main():
@@ -120,19 +154,19 @@ def main():
 
     with edit_tab:
         with st.expander("Keywords"):
-            edit_tab_widget()
-            delete_keyword_tab_widget()
+            manage_keywords_section()
+
         with st.expander("Categories"):
-            create_category_tab_widget()
-            delete_category_tab_widget()
-            create_subcategory_tab_widget()
-            delete_subcategory_tab_widget()
+            manage_categories_section()
+
         with st.expander("Bank Accounts"):
-            create_bank_account_tab_widget()
-            delete_bank_account_tab_widget()
+            manage_bank_accounts_section()
+
         with st.expander("CSV Mappings"):
-            create_csv_mapping_tab_widget()
-            delete_csv_mapping_tab_widget()
+            manage_csv_mappings_section()
+
+        with st.expander("Tags"):
+            manage_tags_section()
 
     with st.expander("Transactions", expanded=True):
         # DataFrame

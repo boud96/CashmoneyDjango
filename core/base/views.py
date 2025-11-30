@@ -14,7 +14,15 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import CSVMapping, Transaction, BankAccount, Keyword, Subcategory, Category
+from .models import (
+    CSVMapping,
+    Transaction,
+    BankAccount,
+    Keyword,
+    Subcategory,
+    Category,
+    Tag,
+)
 
 
 class TransactionFieldsConstants:
@@ -974,6 +982,47 @@ class DeleteCSVMappingsView(View):
             return JsonResponse(
                 {"message": "CSV Mappings deleted successfully", "count": count},
                 status=200,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateTagView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            name = data.get("name")
+            description = data.get("description")
+
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+
+            tag = Tag.objects.create(name=name, description=description)
+
+            return JsonResponse(
+                {"message": "Tag created successfully", "id": tag.id}, status=201
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteTagsView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+
+            count, _ = Tag.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "Tags deleted successfully", "count": count}, status=200
             )
         except Exception as e:
             print(traceback.format_exc())
