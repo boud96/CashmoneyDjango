@@ -4,14 +4,15 @@ import requests
 import streamlit as st
 
 from constants import URLConstants, ModelConstants
-from core.base.models import Subcategory, Keyword
+from core.base.models import Subcategory, Keyword, Category
 
-API_URL_CREATE = (
-        os.getenv("API_BASE_URL", "http://localhost:8123/") + URLConstants.CREATE_KEYWORDS
-)
-API_URL_DELETE = (
-        os.getenv("API_BASE_URL", "http://localhost:8123/") + URLConstants.DELETE_KEYWORDS
-)
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8123/")
+API_URL_CREATE = BASE_URL + URLConstants.CREATE_KEYWORDS
+API_URL_DELETE = BASE_URL + URLConstants.DELETE_KEYWORDS
+API_URL_CREATE_CAT = BASE_URL + URLConstants.CREATE_CATEGORY
+API_URL_DELETE_CAT = BASE_URL + URLConstants.DELETE_CATEGORIES
+API_URL_CREATE_SUB = BASE_URL + URLConstants.CREATE_SUBCATEGORY
+API_URL_DELETE_SUB = BASE_URL + URLConstants.DELETE_SUBCATEGORIES
 
 def edit_tab_widget():
     # --- Data Fetching ---
@@ -185,8 +186,9 @@ def delete_keyword_tab_widget():
             column_config={
                 "Select": st.column_config.CheckboxColumn(
                     "Delete?",
-                    help="Check to mark for deletion",
                     default=False,
+                    width=100,
+                    pinned=True
                 ),
                 "ID": None,
                 "Description": st.column_config.TextColumn(
@@ -239,6 +241,288 @@ def delete_keyword_tab_widget():
                     st.rerun()
                 else:
                     st.error(f"Failed to delete keywords. Status Code: {response.status_code}")
+                    try:
+                        st.json(response.json())
+                    except Exception:
+                        st.write(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+def create_category_tab_widget():
+    # --- Form Structure ---
+    st.title("Create New Category")
+
+    with st.form(key='create_category_form'):
+        st.header("Category Details")
+
+        name = st.text_input(
+            label="Name",
+            max_chars=128
+        )
+
+        description = st.text_area(
+            label="Description",
+            help="Optional description for the category"
+        )
+
+        is_submitted = st.form_submit_button("Submit")
+
+    # --- Submission Logic ---
+    if is_submitted:
+        if not name:
+            st.error("Please provide a Category Name.")
+        else:
+            payload = {
+                "name": name,
+                "description": description
+            }
+
+            try:
+                response = requests.post(API_URL_CREATE_CAT, json=payload, timeout=5)
+
+                if response.status_code == 201:
+                    st.success(f"Category '{name}' created successfully.")
+                else:
+                    st.error(f"Failed to create category. Status Code: {response.status_code}")
+                    try:
+                        st.json(response.json())
+                    except Exception:
+                        st.write(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+
+def delete_category_tab_widget():
+    # --- Data Fetching ---
+    try:
+        categories = Category.objects.all().order_by('name')
+
+        if not categories.exists():
+            st.info("No categories defined.")
+            return
+
+        data = []
+        for c in categories:
+            data.append({
+                "Select": False,
+                "ID": str(c.id),
+                "Name": c.name,
+                "Description": c.description or "",
+            })
+
+        df = pd.DataFrame(data)
+
+    except Exception as e:
+        st.error(f"Connection Error: Could not reach Django backend. {e}")
+        return
+
+    # --- Form Structure ---
+    st.title("Delete Categories")
+    st.markdown("Select the categories you wish to remove from the database.")
+
+    with st.form(key='delete_category_form'):
+        edited_df = st.data_editor(
+            data=df,
+            column_config={
+                "Select": st.column_config.CheckboxColumn(
+                    "Delete?",
+                    default=False,
+                    width=100,
+                    pinned=True
+                ),
+                "ID": None,
+                "Name": st.column_config.TextColumn(
+                    "Name",
+                    disabled=True
+                ),
+                "Description": st.column_config.TextColumn(
+                    "Description",
+                    disabled=True
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
+
+        selected_rows = edited_df[edited_df["Select"] == True]
+        count = len(selected_rows)
+
+        delete_button_label = f"Delete {count} Selected Categories" if count > 0 else "Delete Selected"
+        is_delete_submitted = st.form_submit_button(delete_button_label, type="primary")
+
+    # --- Submission Logic ---
+    if is_delete_submitted:
+        if count == 0:
+            st.warning("Please select at least one category to delete.")
+        else:
+            ids_to_delete = selected_rows["ID"].tolist()
+            payload = {"ids": ids_to_delete}
+
+            try:
+                response = requests.post(API_URL_DELETE_CAT, json=payload, timeout=10)
+
+                if response.status_code == 200:
+                    st.success(f"Successfully deleted {count} categories.")
+                    st.rerun()
+                else:
+                    st.error(f"Failed to delete categories. Status Code: {response.status_code}")
+                    try:
+                        st.json(response.json())
+                    except Exception:
+                        st.write(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+
+def create_subcategory_tab_widget():
+    # --- Data Fetching ---
+    try:
+        all_cats = Category.objects.all()
+        cat_map = {str(c): str(c.id) for c in all_cats}
+        category_display_options = list(cat_map.keys())
+    except Exception as e:
+        st.error(f"Could not access Django ORM. Check environment setup. Error: {e}")
+        return
+
+    category_display_options.insert(0, "--- Select Category ---")
+
+    # --- Form Structure ---
+    st.title("Create New Subcategory")
+
+    with st.form(key='create_subcategory_form'):
+        st.header("Subcategory Details")
+
+        name = st.text_input(
+            label="Name",
+            max_chars=128
+        )
+
+        selected_category_label = st.selectbox(
+            label="Parent Category",
+            options=category_display_options,
+            index=0
+        )
+
+        description = st.text_area(
+            label="Description",
+            help="Optional description for the subcategory"
+        )
+
+        is_submitted = st.form_submit_button("Submit")
+
+    # --- Submission Logic ---
+    if is_submitted:
+        category_id_for_payload = cat_map.get(selected_category_label)
+
+        if not name:
+            st.error("Please provide a Subcategory Name.")
+        elif category_id_for_payload is None:
+            st.error("Please select a valid Parent Category.")
+        else:
+            payload = {
+                "name": name,
+                "description": description,
+                "category_id": category_id_for_payload
+            }
+
+            try:
+                response = requests.post(API_URL_CREATE_SUB, json=payload, timeout=5)
+
+                if response.status_code == 201:
+                    st.success(f"Subcategory '{name}' created successfully.")
+                else:
+                    st.error(f"Failed to create subcategory. Status Code: {response.status_code}")
+                    try:
+                        st.json(response.json())
+                    except Exception:
+                        st.write(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+
+def delete_subcategory_tab_widget():
+    # --- Data Fetching ---
+    try:
+        subcategories = Subcategory.objects.all().select_related('category').order_by('category__name', 'name')
+
+        if not subcategories.exists():
+            st.info("No subcategories defined.")
+            return
+
+        data = []
+        for s in subcategories:
+            data.append({
+                "Select": False,
+                "ID": str(s.id),
+                "Name": s.name,
+                "Category": s.category.name,
+                "Description": s.description or "",
+            })
+
+        df = pd.DataFrame(data)
+
+    except Exception as e:
+        st.error(f"Connection Error: Could not reach Django backend. {e}")
+        return
+
+    # --- Form Structure ---
+    st.title("Delete Subcategories")
+    st.markdown("Select the subcategories you wish to remove from the database.")
+
+    with st.form(key='delete_subcategory_form'):
+        edited_df = st.data_editor(
+            data=df,
+            column_config={
+                "Select": st.column_config.CheckboxColumn(
+                    "Delete?",
+                    default=False,
+                    width=100,
+                    pinned=True
+                ),
+                "ID": None,
+                "Name": st.column_config.TextColumn(
+                    "Name",
+                    disabled=True
+                ),
+                "Category": st.column_config.TextColumn(
+                    "Parent Category",
+                    disabled=True
+                ),
+                "Description": st.column_config.TextColumn(
+                    "Description",
+                    disabled=True
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
+
+        selected_rows = edited_df[edited_df["Select"] == True]
+        count = len(selected_rows)
+
+        delete_button_label = f"Delete {count} Selected Subcategories" if count > 0 else "Delete Selected"
+        is_delete_submitted = st.form_submit_button(delete_button_label, type="primary")
+
+    # --- Submission Logic ---
+    if is_delete_submitted:
+        if count == 0:
+            st.warning("Please select at least one subcategory to delete.")
+        else:
+            ids_to_delete = selected_rows["ID"].tolist()
+            payload = {"ids": ids_to_delete}
+
+            try:
+                response = requests.post(API_URL_DELETE_SUB, json=payload, timeout=10)
+
+                if response.status_code == 200:
+                    st.success(f"Successfully deleted {count} subcategories.")
+                    st.rerun()
+                else:
+                    st.error(f"Failed to delete subcategories. Status Code: {response.status_code}")
                     try:
                         st.json(response.json())
                     except Exception:

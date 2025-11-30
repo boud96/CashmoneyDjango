@@ -1,6 +1,13 @@
 import streamlit as st
 from app import app_launcher
-from widgets.edit import edit_tab_widget, delete_keyword_tab_widget
+from widgets.edit import (
+    edit_tab_widget,
+    delete_keyword_tab_widget,
+    create_category_tab_widget,
+    delete_category_tab_widget,
+    create_subcategory_tab_widget,
+    delete_subcategory_tab_widget
+)
 
 from widgets.recategorize import recategorize_tab_widget
 from widgets.csv_import import import_form_widget
@@ -106,6 +113,11 @@ def main():
         with st.expander("Keywords"):
             edit_tab_widget()
             delete_keyword_tab_widget()
+        with st.expander("Categories"):
+            create_category_tab_widget()
+            delete_category_tab_widget()
+            create_subcategory_tab_widget()
+            delete_subcategory_tab_widget()
 
     # DataFrame
     transactions_dataframe = DataFrameWidget(transactions)

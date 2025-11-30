@@ -14,7 +14,14 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import CSVMapping, Transaction, BankAccount, Keyword, Subcategory
+from .models import (
+    CSVMapping,
+    Transaction,
+    BankAccount,
+    Keyword,
+    Subcategory,
+    Category
+)
 
 
 class TransactionFieldsConstants:
@@ -756,4 +763,100 @@ class DeleteKeywordsView(View):
             )
 
         except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateCategoryView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            name = data.get("name")
+            description = data.get("description")
+
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+
+            category = Category.objects.create(name=name, description=description)
+
+            return JsonResponse(
+                {"message": "Category created successfully", "id": category.id},
+                status=201
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteCategoriesView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+
+            count, _ = Category.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "Categories deleted successfully", "count": count},
+                status=200
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateSubcategoryView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            name = data.get("name")
+            description = data.get("description")
+            category_id = data.get("category_id")
+
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+            if not category_id:
+                return JsonResponse({"error": "Category ID is required"}, status=400)
+
+            try:
+                category = Category.objects.get(id=category_id)
+            except Category.DoesNotExist:
+                return JsonResponse({"error": "Category not found"}, status=404)
+
+            subcategory = Subcategory.objects.create(
+                name=name, description=description, category=category
+            )
+
+            return JsonResponse(
+                {"message": "Subcategory created successfully", "id": subcategory.id},
+                status=201
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteSubcategoriesView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+
+            count, _ = Subcategory.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "Subcategories deleted successfully", "count": count},
+                status=200
+            )
+        except Exception as e:
+            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
