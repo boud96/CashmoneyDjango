@@ -217,7 +217,7 @@ def delete_keyword_tab_widget():
             use_container_width=True,
         )
 
-        selected_rows = edited_df[edited_df["Select"] == True]
+        selected_rows = edited_df[edited_df["Select"]]
         count = len(selected_rows)
 
         delete_button_label = (
@@ -342,7 +342,7 @@ def delete_category_tab_widget():
             use_container_width=True,
         )
 
-        selected_rows = edited_df[edited_df["Select"] == True]
+        selected_rows = edited_df[edited_df["Select"]]
         count = len(selected_rows)
 
         delete_button_label = (
@@ -495,7 +495,7 @@ def delete_subcategory_tab_widget():
             use_container_width=True,
         )
 
-        selected_rows = edited_df[edited_df["Select"] == True]
+        selected_rows = edited_df[edited_df["Select"]]
         count = len(selected_rows)
 
         delete_button_label = (
