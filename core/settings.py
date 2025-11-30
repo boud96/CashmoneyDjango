@@ -31,7 +31,10 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
-
+CSRF_TRUSTED_ORIGINS = [
+    url for url in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if url
+]
 
 # Application definition
 
