@@ -154,4 +154,4 @@ class DataFrameWidget(BaseWidget):
             self._rename_columns()
             styled_df = self._create_styled_dataframe()
 
-            st.dataframe(styled_df, hide_index=True, use_container_width=True)
+            st.dataframe(styled_df, hide_index=True)

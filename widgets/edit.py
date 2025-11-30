@@ -4,15 +4,17 @@ import requests
 import streamlit as st
 
 from constants import URLConstants, ModelConstants
-from core.base.models import Subcategory, Keyword, Category
+from core.base.models import Subcategory, Keyword, Category, BankAccount
 
 BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8123/")
-API_URL_CREATE = BASE_URL + URLConstants.CREATE_KEYWORDS
-API_URL_DELETE = BASE_URL + URLConstants.DELETE_KEYWORDS
-API_URL_CREATE_CAT = BASE_URL + URLConstants.CREATE_CATEGORY
-API_URL_DELETE_CAT = BASE_URL + URLConstants.DELETE_CATEGORIES
-API_URL_CREATE_SUB = BASE_URL + URLConstants.CREATE_SUBCATEGORY
-API_URL_DELETE_SUB = BASE_URL + URLConstants.DELETE_SUBCATEGORIES
+API_URL_CREATE_KEYWORD = BASE_URL + URLConstants.CREATE_KEYWORDS
+API_URL_DELETE_KEYWORD = BASE_URL + URLConstants.DELETE_KEYWORDS
+API_URL_CREATE_CATEGORY = BASE_URL + URLConstants.CREATE_CATEGORY
+API_URL_DELETE_CATEGORIES = BASE_URL + URLConstants.DELETE_CATEGORIES
+API_URL_CREATE_SUBCATEGORY = BASE_URL + URLConstants.CREATE_SUBCATEGORY
+API_URL_DELETE_SUBCATEGORIES = BASE_URL + URLConstants.DELETE_SUBCATEGORIES
+API_URL_CREATE_BANK_ACCOUNT = BASE_URL + URLConstants.CREATE_BANK_ACCOUNT
+API_URL_DELETE_BANK_ACCOUNTS = BASE_URL + URLConstants.DELETE_BANK_ACCOUNTS
 
 
 def edit_tab_widget():
@@ -84,10 +86,11 @@ def edit_tab_widget():
                 ),
             },
             num_rows="dynamic",
-            use_container_width=True,
         )
 
-        is_keyword_submitted = st.form_submit_button("Submit")
+        is_keyword_submitted = st.form_submit_button(
+            "Submit", key="submit_create_keyword"
+        )
 
     # --- Submission Logic ---
     if is_keyword_submitted:
@@ -130,7 +133,7 @@ def edit_tab_widget():
 
             try:
                 response = requests.post(
-                    API_URL_CREATE, json=keyword_payload, timeout=5
+                    API_URL_CREATE_KEYWORD, json=keyword_payload, timeout=5
                 )
 
                 if response.status_code == 201:
@@ -214,7 +217,6 @@ def delete_keyword_tab_widget():
                 ),
             },
             hide_index=True,
-            use_container_width=True,
         )
 
         selected_rows = edited_df[edited_df["Select"]]
@@ -223,7 +225,9 @@ def delete_keyword_tab_widget():
         delete_button_label = (
             f"Delete {count} Selected Keywords" if count > 0 else "Delete Selected"
         )
-        is_delete_submitted = st.form_submit_button(delete_button_label, type="primary")
+        is_delete_submitted = st.form_submit_button(
+            delete_button_label, type="primary", key="submit_delete_keyword"
+        )
 
     # --- Submission Logic ---
     if is_delete_submitted:
@@ -236,7 +240,9 @@ def delete_keyword_tab_widget():
             payload = {"ids": ids_to_delete}
 
             try:
-                response = requests.post(API_URL_DELETE, json=payload, timeout=10)
+                response = requests.post(
+                    API_URL_DELETE_KEYWORD, json=payload, timeout=10
+                )
 
                 if response.status_code == 200:
                     st.success(f"Successfully deleted {count} keywords.")
@@ -268,7 +274,7 @@ def create_category_tab_widget():
             label="Description", help="Optional description for the category"
         )
 
-        is_submitted = st.form_submit_button("Submit")
+        is_submitted = st.form_submit_button("Submit", key="submit_create_category")
 
     # --- Submission Logic ---
     if is_submitted:
@@ -278,7 +284,9 @@ def create_category_tab_widget():
             payload = {"name": name, "description": description}
 
             try:
-                response = requests.post(API_URL_CREATE_CAT, json=payload, timeout=5)
+                response = requests.post(
+                    API_URL_CREATE_CATEGORY, json=payload, timeout=5
+                )
 
                 if response.status_code == 201:
                     st.success(f"Category '{name}' created successfully.")
@@ -339,7 +347,6 @@ def delete_category_tab_widget():
                 ),
             },
             hide_index=True,
-            use_container_width=True,
         )
 
         selected_rows = edited_df[edited_df["Select"]]
@@ -348,7 +355,9 @@ def delete_category_tab_widget():
         delete_button_label = (
             f"Delete {count} Selected Categories" if count > 0 else "Delete Selected"
         )
-        is_delete_submitted = st.form_submit_button(delete_button_label, type="primary")
+        is_delete_submitted = st.form_submit_button(
+            delete_button_label, type="primary", key="submit_delete_category"
+        )
 
     # --- Submission Logic ---
     if is_delete_submitted:
@@ -359,7 +368,9 @@ def delete_category_tab_widget():
             payload = {"ids": ids_to_delete}
 
             try:
-                response = requests.post(API_URL_DELETE_CAT, json=payload, timeout=10)
+                response = requests.post(
+                    API_URL_DELETE_CATEGORIES, json=payload, timeout=10
+                )
 
                 if response.status_code == 200:
                     st.success(f"Successfully deleted {count} categories.")
@@ -405,7 +416,7 @@ def create_subcategory_tab_widget():
             label="Description", help="Optional description for the subcategory"
         )
 
-        is_submitted = st.form_submit_button("Submit")
+        is_submitted = st.form_submit_button("Submit", key="submit_create_subcategory")
 
     # --- Submission Logic ---
     if is_submitted:
@@ -423,7 +434,9 @@ def create_subcategory_tab_widget():
             }
 
             try:
-                response = requests.post(API_URL_CREATE_SUB, json=payload, timeout=5)
+                response = requests.post(
+                    API_URL_CREATE_SUBCATEGORY, json=payload, timeout=5
+                )
 
                 if response.status_code == 201:
                     st.success(f"Subcategory '{name}' created successfully.")
@@ -492,7 +505,6 @@ def delete_subcategory_tab_widget():
                 ),
             },
             hide_index=True,
-            use_container_width=True,
         )
 
         selected_rows = edited_df[edited_df["Select"]]
@@ -501,7 +513,9 @@ def delete_subcategory_tab_widget():
         delete_button_label = (
             f"Delete {count} Selected Subcategories" if count > 0 else "Delete Selected"
         )
-        is_delete_submitted = st.form_submit_button(delete_button_label, type="primary")
+        is_delete_submitted = st.form_submit_button(
+            delete_button_label, type="primary", key="submit_delete_subcategory"
+        )
 
     # --- Submission Logic ---
     if is_delete_submitted:
@@ -512,7 +526,9 @@ def delete_subcategory_tab_widget():
             payload = {"ids": ids_to_delete}
 
             try:
-                response = requests.post(API_URL_DELETE_SUB, json=payload, timeout=10)
+                response = requests.post(
+                    API_URL_DELETE_SUBCATEGORIES, json=payload, timeout=10
+                )
 
                 if response.status_code == 200:
                     st.success(f"Successfully deleted {count} subcategories.")
@@ -520,6 +536,144 @@ def delete_subcategory_tab_widget():
                 else:
                     st.error(
                         f"Failed to delete subcategories. Status Code: {response.status_code}"
+                    )
+                    try:
+                        st.json(response.json())
+                    except Exception:
+                        st.write(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+
+def create_bank_account_tab_widget():
+    # --- Form Structure ---
+    st.title("Create New Bank Account")
+
+    with st.form(key="create_bank_account_form"):
+        st.header("Account Details")
+
+        account_name = st.text_input(
+            label="Account Name", help="e.g., Main Checking, Savings", max_chars=128
+        )
+
+        account_number = st.text_input(label="Account Number", max_chars=128)
+
+        owners = st.number_input(label="Number of Owners", min_value=1, value=1, step=1)
+
+        is_submitted = st.form_submit_button("Submit", key="submit_create_bank_account")
+
+    # --- Submission Logic ---
+    if is_submitted:
+        if not account_name:
+            st.error("Please provide an Account Name.")
+        elif not account_number:
+            st.error("Please provide an Account Number.")
+        else:
+            payload = {
+                "account_name": account_name,
+                "account_number": account_number,
+                "owners": int(owners),
+            }
+
+            try:
+                response = requests.post(
+                    API_URL_CREATE_BANK_ACCOUNT, json=payload, timeout=5
+                )
+
+                if response.status_code == 201:
+                    st.success(f"Bank Account '{account_name}' created successfully.")
+                else:
+                    st.error(
+                        f"Failed to create bank account. Status Code: {response.status_code}"
+                    )
+                    try:
+                        st.json(response.json())
+                    except Exception:
+                        st.write(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+
+def delete_bank_account_tab_widget():
+    # --- Data Fetching ---
+    try:
+        accounts = BankAccount.objects.all().order_by("account_name")
+
+        if not accounts.exists():
+            st.info("No bank accounts defined.")
+            return
+
+        data = []
+        for acc in accounts:
+            data.append(
+                {
+                    "Select": False,
+                    "ID": str(acc.id),
+                    "Name": acc.account_name,
+                    "Number": acc.account_number,
+                    "Owners": acc.owners,
+                }
+            )
+
+        df = pd.DataFrame(data)
+
+    except Exception as e:
+        st.error(f"Connection Error: Could not reach Django backend. {e}")
+        return
+
+    # --- Form Structure ---
+    st.title("Delete Bank Accounts")
+    st.markdown("Select the bank accounts you wish to remove from the database.")
+
+    with st.form(key="delete_bank_account_form"):
+        edited_df = st.data_editor(
+            data=df,
+            column_config={
+                "Select": st.column_config.CheckboxColumn(
+                    "Delete?",
+                    default=False,
+                ),
+                "ID": None,
+                "Name": st.column_config.TextColumn("Account Name", disabled=True),
+                "Number": st.column_config.TextColumn("Account Number", disabled=True),
+                "Owners": st.column_config.NumberColumn(
+                    "Owners", disabled=True, format="%d"
+                ),
+            },
+            hide_index=True,
+        )
+
+        selected_rows = edited_df[edited_df["Select"]]
+        count = len(selected_rows)
+
+        delete_button_label = (
+            f"Delete {count} Selected Accounts" if count > 0 else "Delete Selected"
+        )
+        is_delete_submitted = st.form_submit_button(
+            delete_button_label, type="primary", key="submit_delete_bank_account"
+        )
+
+    # --- Submission Logic ---
+    if is_delete_submitted:
+        if count == 0:
+            st.warning("Please select at least one account to delete.")
+        else:
+            ids_to_delete = selected_rows["ID"].tolist()
+            payload = {"ids": ids_to_delete}
+
+            try:
+                response = requests.post(
+                    API_URL_DELETE_BANK_ACCOUNTS, json=payload, timeout=10
+                )
+
+                if response.status_code == 200:
+                    st.success(f"Successfully deleted {count} bank accounts.")
+                    st.rerun()
+                else:
+                    st.error(
+                        f"Failed to delete bank accounts. Status Code: {response.status_code}"
                     )
                     try:
                         st.json(response.json())

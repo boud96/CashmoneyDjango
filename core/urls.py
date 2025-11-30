@@ -28,6 +28,8 @@ from core.base.views import (
     DeleteCategoriesView,
     CreateSubcategoryView,
     DeleteSubcategoriesView,
+    CreateBankAccountView,
+    DeleteBankAccountsView,
 )
 
 urlpatterns = [
@@ -71,5 +73,15 @@ urlpatterns = [
         URLConstants.DELETE_SUBCATEGORIES,
         DeleteSubcategoriesView.as_view(),
         name="delete-subcategories",
+    ),
+    path(
+        URLConstants.CREATE_BANK_ACCOUNT,
+        CreateBankAccountView.as_view(),
+        name="create-bank-account",
+    ),
+    path(
+        URLConstants.DELETE_BANK_ACCOUNTS,
+        DeleteBankAccountsView.as_view(),
+        name="delete-bank-accounts",
     ),
 ]

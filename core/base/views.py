@@ -850,3 +850,51 @@ class DeleteSubcategoriesView(View):
         except Exception as e:
             print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateBankAccountView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            account_number = data.get("account_number")
+            account_name = data.get("account_name")
+            owners = data.get("owners", 1)
+
+            if not account_number:
+                return JsonResponse({"error": "Account Number is required"}, status=400)
+            if not account_name:
+                return JsonResponse({"error": "Account Name is required"}, status=400)
+
+            bank_account = BankAccount.objects.create(
+                account_number=account_number, account_name=account_name, owners=owners
+            )
+
+            return JsonResponse(
+                {"message": "Bank Account created successfully", "id": bank_account.id},
+                status=201,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteBankAccountsView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+
+            count, _ = BankAccount.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "Bank Accounts deleted successfully", "count": count},
+                status=200,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)

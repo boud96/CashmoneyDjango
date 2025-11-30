@@ -7,6 +7,8 @@ from widgets.edit import (
     delete_category_tab_widget,
     create_subcategory_tab_widget,
     delete_subcategory_tab_widget,
+    create_bank_account_tab_widget,
+    delete_bank_account_tab_widget,
 )
 
 from widgets.recategorize import recategorize_tab_widget
@@ -120,6 +122,9 @@ def main():
             delete_category_tab_widget()
             create_subcategory_tab_widget()
             delete_subcategory_tab_widget()
+        with st.expander("Bank Accounts"):
+            create_bank_account_tab_widget()
+            delete_bank_account_tab_widget()
 
     # DataFrame
     transactions_dataframe = DataFrameWidget(transactions)
