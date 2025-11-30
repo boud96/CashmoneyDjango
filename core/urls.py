@@ -30,6 +30,8 @@ from core.base.views import (
     DeleteSubcategoriesView,
     CreateBankAccountView,
     DeleteBankAccountsView,
+    CreateCSVMappingView,
+    DeleteCSVMappingsView,
 )
 
 urlpatterns = [
@@ -83,5 +85,15 @@ urlpatterns = [
         URLConstants.DELETE_BANK_ACCOUNTS,
         DeleteBankAccountsView.as_view(),
         name="delete-bank-accounts",
+    ),
+    path(
+        URLConstants.CREATE_CSV_MAPPING,
+        CreateCSVMappingView.as_view(),
+        name="create-csv-mapping",
+    ),
+    path(
+        URLConstants.DELETE_CSV_MAPPINGS,
+        DeleteCSVMappingsView.as_view(),
+        name="delete-csv-mappings",
     ),
 ]

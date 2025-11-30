@@ -10,6 +10,8 @@ class URLConstants:
     DELETE_SUBCATEGORIES = "delete-subcategories/"
     CREATE_BANK_ACCOUNT = "create-bank-account/"
     DELETE_BANK_ACCOUNTS = "delete-bank-accounts/"
+    CREATE_CSV_MAPPING = "create-csv-mapping/"
+    DELETE_CSV_MAPPINGS = "delete-csv-mappings/"
 
 
 class ModelConstants:

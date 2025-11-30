@@ -4,7 +4,7 @@ import requests
 import streamlit as st
 
 from constants import URLConstants, ModelConstants
-from core.base.models import Subcategory, Keyword, Category, BankAccount
+from core.base.models import Subcategory, Keyword, Category, BankAccount, CSVMapping
 
 BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8123/")
 API_URL_CREATE_KEYWORD = BASE_URL + URLConstants.CREATE_KEYWORDS
@@ -15,6 +15,8 @@ API_URL_CREATE_SUBCATEGORY = BASE_URL + URLConstants.CREATE_SUBCATEGORY
 API_URL_DELETE_SUBCATEGORIES = BASE_URL + URLConstants.DELETE_SUBCATEGORIES
 API_URL_CREATE_BANK_ACCOUNT = BASE_URL + URLConstants.CREATE_BANK_ACCOUNT
 API_URL_DELETE_BANK_ACCOUNTS = BASE_URL + URLConstants.DELETE_BANK_ACCOUNTS
+API_URL_CREATE_CSV_MAPPING = BASE_URL + URLConstants.CREATE_CSV_MAPPING
+API_URL_DELETE_CSV_MAPPINGS = BASE_URL + URLConstants.DELETE_CSV_MAPPINGS
 
 
 def edit_tab_widget():
@@ -674,6 +676,264 @@ def delete_bank_account_tab_widget():
                 else:
                     st.error(
                         f"Failed to delete bank accounts. Status Code: {response.status_code}"
+                    )
+                    try:
+                        st.json(response.json())
+                    except Exception:
+                        st.write(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+
+def create_csv_mapping_tab_widget():
+    # TODO: Add help param to the input fields
+    st.title("Create New CSV Mapping")
+    st.markdown("Define how to parse specific bank CSV exports.")
+
+    with st.form(key="create_csv_mapping_form"):
+        # --- Section 1: File Format ---
+        st.subheader("1. File Format")
+        col1, col2 = st.columns(2)
+        with col1:
+            name = st.text_input("Mapping Name (Required)", help="e.g., KB Bank Export")
+            encoding = st.text_input(
+                "Encoding", value="utf-8", help="e.g., utf-8, cp1250"
+            )
+        with col2:
+            delimiter = st.text_input("Delimiter", value=",", max_chars=5)
+            header_row = st.number_input(
+                "Header Row Index", value=0, min_value=0, step=1
+            )
+
+        # --- Section 2: Dates & Amounts ---
+        st.subheader("2. Dates & Money")
+        col3, col4 = st.columns(2)
+        with col3:
+            date_of_transaction_value = st.text_input(
+                "Transaction Date Column (Required)"
+            )
+            date_of_transaction_format = st.text_input(
+                "Transaction Date Format", value="%d.%m.%Y"
+            )
+            amount = st.text_input("Amount Column")
+            currency = st.text_input("Currency Column")
+        with col4:
+            date_of_submission_value = st.text_input("Submission Date Column")
+            date_of_submission_format = st.text_input("Submission Date Format")
+
+        # --- Section 3: Identifiers & Symbols ---
+        st.subheader("3. Identifiers & Symbols")
+        col5, col6, col7, col8 = st.columns(4)
+        with col5:
+            original_id = st.text_input("Original ID Column")
+        with col6:
+            variable_symbol = st.text_input("Variable Symbol")
+        with col7:
+            constant_symbol = st.text_input("Constant Symbol")
+        with col8:
+            specific_symbol = st.text_input("Specific Symbol")
+
+        # --- Section 4: Counterparty & Notes ---
+        st.subheader("4. Counterparty & Details")
+        col9, col10 = st.columns(2)
+        with col9:
+            counterparty_name = st.text_input("Counterparty Name Column")
+            counterparty_account = st.text_input("Counterparty Account No.")
+            counterparty_bank = st.text_input("Counterparty Bank Code")
+        with col10:
+            transaction_type = st.text_input("Transaction Type Column")
+            my_note = st.text_input("My Note Column")
+            counterparty_note = st.text_input("Counterparty Note Column")
+
+        # --- Section 5: Configuration ---
+        st.subheader("5. Advanced Configuration")
+
+        # Categorization Fields (Multiselect)
+        allowed_fields_choices = [
+            "my_note",
+            "other_note",
+            "counterparty_note",
+            "counterparty_name",
+            "counterparty_account_number",
+            "transaction_type",
+            "variable_symbol",
+            "specific_symbol",
+            "constant_symbol",
+        ]
+
+        categorization_fields = st.multiselect(
+            "Categorization Fields",
+            options=allowed_fields_choices,
+            help="Select fields used to auto-categorize transactions.",
+        )
+
+        st.caption("Other Notes (Extra columns to store)")
+        # Other Note (Data Editor for list input)
+        other_note_df = pd.DataFrame({"Column Names": pd.Series(dtype="str")})
+        edited_other_notes = st.data_editor(
+            other_note_df,
+            column_config={
+                "Column Names": st.column_config.TextColumn(
+                    "CSV Column Name",
+                    help="Add column names to be stored in 'Other Note'",
+                )
+            },
+            num_rows="dynamic",
+            use_container_width=True,
+            key="other_notes_editor",
+        )
+
+        is_submitted = st.form_submit_button(
+            "Create Mapping", key="submit_create_csv_mapping"
+        )
+
+    # --- Submission Logic ---
+    if is_submitted:
+        if not name:
+            st.error("Please provide a Mapping Name.")
+        elif not date_of_transaction_value:
+            st.error("Please provide the Transaction Date Column name.")
+        else:
+            other_note_list = [
+                str(item).strip() for item in edited_other_notes["Column Names"] if item
+            ]
+
+            payload = {
+                "name": name,
+                "amount": amount,
+                "header": header_row,
+                "my_note": my_note,
+                "currency": currency,
+                "encoding": encoding,
+                "delimiter": delimiter,
+                "other_note": other_note_list,  # Send as list
+                "original_id": original_id,
+                "constant_symbol": constant_symbol,
+                "specific_symbol": specific_symbol,
+                "variable_symbol": variable_symbol,
+                "transaction_type": transaction_type,
+                "counterparty_name": counterparty_name,
+                "counterparty_note": counterparty_note,
+                "date_of_submission_value": date_of_submission_value,
+                "date_of_submission_format": date_of_submission_format,
+                "date_of_transaction_value": date_of_transaction_value,
+                "date_of_transaction_format": date_of_transaction_format,
+                "counterparty_account_number": counterparty_account,
+                "counterparty_bank_code": counterparty_bank,
+                "categorization_fields": categorization_fields,
+            }
+
+            try:
+                response = requests.post(
+                    API_URL_CREATE_CSV_MAPPING, json=payload, timeout=5
+                )
+
+                if response.status_code == 201:
+                    st.success(f"CSV Mapping '{name}' created successfully.")
+                else:
+                    st.error(
+                        f"Failed to create mapping. Status Code: {response.status_code}"
+                    )
+                    try:
+                        st.json(response.json())
+                    except Exception:
+                        st.write(response.text)
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Connection Error: Could not reach Django backend. {e}")
+
+
+def delete_csv_mapping_tab_widget():
+    # --- Data Fetching ---
+    try:
+        mappings = CSVMapping.objects.all().order_by("name")
+
+        if not mappings.exists():
+            st.info("No CSV Mappings defined.")
+            return
+
+        data = []
+        for m in mappings:
+            cat_fields_str = (
+                ", ".join(m.categorization_fields) if m.categorization_fields else "-"
+            )
+
+            data.append(
+                {
+                    "Select": False,
+                    "ID": str(m.id),
+                    "Name": m.name,
+                    "Delimiter": m.delimiter,
+                    "Date Col": m.date_of_transaction_value,
+                    "Amount Col": m.amount or "-",
+                    "Cat. Fields": cat_fields_str,
+                }
+            )
+
+        df = pd.DataFrame(data)
+
+    except Exception as e:
+        st.error(f"Connection Error: Could not reach Django backend. {e}")
+        return
+
+    # --- Form Structure ---
+    st.title("Delete CSV Mappings")
+    st.markdown("Select the mappings you wish to remove from the database.")
+
+    with st.form(key="delete_csv_mapping_form"):
+        edited_df = st.data_editor(
+            data=df,
+            column_config={
+                "Select": st.column_config.CheckboxColumn(
+                    "Delete?", default=False, width=80, pinned=True
+                ),
+                "ID": None,
+                "Name": st.column_config.TextColumn("Name", disabled=True),
+                "Delimiter": st.column_config.TextColumn(
+                    "Delimiter", disabled=True, width=100
+                ),
+                "Date Col": st.column_config.TextColumn("Date Column", disabled=True),
+                "Amount Col": st.column_config.TextColumn(
+                    "Amount Column", disabled=True
+                ),
+                "Cat. Fields": st.column_config.TextColumn(
+                    "Categorization Fields", disabled=True
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
+
+        selected_rows = edited_df[edited_df["Select"]]
+        count = len(selected_rows)
+
+        delete_button_label = (
+            f"Delete {count} Selected Mappings" if count > 0 else "Delete Selected"
+        )
+        is_delete_submitted = st.form_submit_button(
+            delete_button_label, type="primary", key="submit_delete_csv_mapping"
+        )
+
+    # --- Submission Logic ---
+    if is_delete_submitted:
+        if count == 0:
+            st.warning("Please select at least one mapping to delete.")
+        else:
+            ids_to_delete = selected_rows["ID"].tolist()
+            payload = {"ids": ids_to_delete}
+
+            try:
+                response = requests.post(
+                    API_URL_DELETE_CSV_MAPPINGS, json=payload, timeout=10
+                )
+
+                if response.status_code == 200:
+                    st.success(f"Successfully deleted {count} mappings.")
+                    st.rerun()
+                else:
+                    st.error(
+                        f"Failed to delete mappings. Status Code: {response.status_code}"
                     )
                     try:
                         st.json(response.json())

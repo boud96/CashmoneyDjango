@@ -9,6 +9,8 @@ from widgets.edit import (
     delete_subcategory_tab_widget,
     create_bank_account_tab_widget,
     delete_bank_account_tab_widget,
+    create_csv_mapping_tab_widget,
+    delete_csv_mapping_tab_widget,
 )
 
 from widgets.recategorize import recategorize_tab_widget
@@ -128,6 +130,9 @@ def main():
         with st.expander("Bank Accounts"):
             create_bank_account_tab_widget()
             delete_bank_account_tab_widget()
+        with st.expander("CSV Mappings"):
+            create_csv_mapping_tab_widget()
+            delete_csv_mapping_tab_widget()
 
     with st.expander("Transactions", expanded=True):
         # DataFrame

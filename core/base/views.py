@@ -898,3 +898,83 @@ class DeleteBankAccountsView(View):
         except Exception as e:
             print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateCSVMappingView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+
+            name = data.get("name")
+            date_of_transaction_value = data.get("date_of_transaction_value")
+
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+            if not date_of_transaction_value:
+                return JsonResponse(
+                    {"error": "Date of Transaction Column is required"}, status=400
+                )
+
+            other_note_list = data.get("other_note", [])
+            other_note_str = (
+                ",".join(other_note_list) if isinstance(other_note_list, list) else ""
+            )
+
+            categorization_fields = data.get("categorization_fields", [])
+
+            mapping = CSVMapping.objects.create(
+                name=name,
+                amount=data.get("amount"),
+                header=data.get("header", 0),
+                my_note=data.get("my_note"),
+                currency=data.get("currency"),
+                encoding=data.get("encoding", "utf-8"),
+                delimiter=data.get("delimiter", ","),
+                other_note=other_note_str,
+                original_id=data.get("original_id"),
+                constant_symbol=data.get("constant_symbol"),
+                specific_symbol=data.get("specific_symbol"),
+                variable_symbol=data.get("variable_symbol"),
+                transaction_type=data.get("transaction_type"),
+                counterparty_name=data.get("counterparty_name"),
+                counterparty_note=data.get("counterparty_note"),
+                date_of_submission_value=data.get("date_of_submission_value"),
+                date_of_submission_format=data.get("date_of_submission_format"),
+                date_of_transaction_value=date_of_transaction_value,
+                date_of_transaction_format=data.get(
+                    "date_of_transaction_format", "%d.%m.%Y"
+                ),
+                counterparty_account_number=data.get("counterparty_account_number"),
+                counterparty_bank_code=data.get("counterparty_bank_code"),
+                categorization_fields=categorization_fields,
+            )
+
+            return JsonResponse(
+                {"message": "CSV Mapping created successfully", "id": mapping.id},
+                status=201,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteCSVMappingsView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+
+            count, _ = CSVMapping.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "CSV Mappings deleted successfully", "count": count},
+                status=200,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
