@@ -21,3 +21,13 @@ class ModelConstants:
     ]
     INCLUDE_RULE_KEY = "include"
     EXCLUDE_RULE_KEY = "exclude"
+
+
+class WidgetConstants:
+    WNI_COLORS = {
+        "Need": "#54a0ff",  # Blue
+        "Want": "#ff9f43",  # Orange
+        "Investment": "#1dd1a1",  # Green
+        "None": "#c8d6e5",  # Grey
+        "Uncategorized": "#c8d6e5",
+    }
