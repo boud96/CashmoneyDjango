@@ -207,7 +207,7 @@ class Transaction(AbstractBaseModel):
     date_of_transaction = models.DateTimeField(null=False, blank=False)
 
     bank_account = models.ForeignKey(
-        "BankAccount", on_delete=models.CASCADE, null=True, blank=True
+        "BankAccount", on_delete=models.SET_NULL, null=True, blank=True
     )
 
     counterparty_account_number = models.CharField(
