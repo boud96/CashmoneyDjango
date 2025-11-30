@@ -92,20 +92,23 @@ def main():
         ["Home", "Recategorize", "Import", "Edit"]
     )
     with home_tab:
-        # Overview Stats
-        overview_stats = OverviewStatsWidget(transactions, filter_params)
-        overview_stats.place_widget()
+        with st.expander("Overview", expanded=True):
+            # Overview Stats
+            overview_stats = OverviewStatsWidget(transactions, filter_params)
+            overview_stats.place_widget()
 
-        # Bar Chart
-        bar_chart = BarChartWidget(transactions, filter_params)
-        bar_chart.place_widget()
+        with st.expander("Bar Chart", expanded=True):
+            # Bar Chart
+            bar_chart = BarChartWidget(transactions, filter_params)
+            bar_chart.place_widget()
 
-        # Sun Bursts
-        transaction_sunburst = TransactionSunburstWidget(transactions)
-        transaction_sunburst.place_widget()
+        with st.expander("Pie Charts", expanded=True):
+            # Sun Bursts
+            transaction_sunburst = TransactionSunburstWidget(transactions)
+            transaction_sunburst.place_widget()
 
-        widget = TransactionWNIWidget(transactions)
-        widget.place_widget()
+            widget = TransactionWNIWidget(transactions)
+            widget.place_widget()
 
     with recategorize_tab:
         recategorize_tab_widget(transactions)
@@ -126,9 +129,10 @@ def main():
             create_bank_account_tab_widget()
             delete_bank_account_tab_widget()
 
-    # DataFrame
-    transactions_dataframe = DataFrameWidget(transactions)
-    transactions_dataframe.place_widget()
+    with st.expander("Transactions", expanded=True):
+        # DataFrame
+        transactions_dataframe = DataFrameWidget(transactions)
+        transactions_dataframe.place_widget()
 
 
 if __name__ == "__main__":
