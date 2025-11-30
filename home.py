@@ -33,6 +33,7 @@ import os
 from dotenv import load_dotenv
 
 
+# TODO: Figure out the reruns for the whole app but keep the tabs etc.
 @st.fragment
 def manage_keywords_section():
     edit_tab_widget()
