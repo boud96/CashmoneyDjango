@@ -171,7 +171,7 @@ class DataFrameWidget(BaseWidget):
 
     def place_widget(self):
         if self.df.empty:
-            st.info("No data available.")
+            st.info("No transactions found.")
             return
 
         display_df = self._get_ordered_and_renamed_df()

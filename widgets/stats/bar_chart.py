@@ -92,6 +92,9 @@ class BarChartWidget(BaseWidget):
 
     def place_widget(self):
         df = self.make_df().reset_index()
+        if self.df.empty:
+            st.info("No transactions found.")
+            return
 
         tooltip_config = [
             alt.Tooltip("month_year", title="Month"),

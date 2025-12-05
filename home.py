@@ -121,9 +121,6 @@ def main():
         st.json(filter_params, expanded=False)
 
     transactions = Transaction.get_transactions_from_db(filter_params)
-    if not transactions:
-        st.info("No transactions found.")
-        return
 
     home_tab, recategorize_tab, import_tab, edit_tab = st.tabs(
         ["Home", "Recategorize", "Import", "Edit"]
