@@ -390,7 +390,6 @@ class ImportTransactionsView(View):
             )
 
         except Exception as e:
-            print(traceback.format_exc())  # TODO: DEBUG remove
             return JsonResponse({"error": str(e)}, status=500)
 
     @staticmethod
@@ -672,7 +671,6 @@ class RecategorizeTransactionsView(View):
             )
 
         except Exception as e:
-            print(traceback.format_exc())  # TODO: DEBUG remove
             return JsonResponse({"error": str(e)}, status=500)
 
 
