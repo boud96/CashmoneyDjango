@@ -300,6 +300,12 @@ def create_category_tab_widget():
 
                 if response.status_code == 201:
                     st.success(f"Category '{name}' created successfully.")
+
+                elif response.status_code == 409:
+                    st.warning(
+                        f"Category '{name}' already exists. Please choose a different name."
+                    )
+
                 else:
                     st.error(
                         f"Failed to create category. Status Code: {response.status_code}"
@@ -450,6 +456,15 @@ def create_subcategory_tab_widget():
 
                 if response.status_code == 201:
                     st.success(f"Subcategory '{name}' created successfully.")
+
+                elif response.status_code == 409:
+                    st.warning(
+                        f"Subcategory '{name}' already exists. Please choose a different name."
+                    )
+
+                elif response.status_code == 404:
+                    st.error("The selected Parent Category no longer exists.")
+
                 else:
                     st.error(
                         f"Failed to create subcategory. Status Code: {response.status_code}"
@@ -496,7 +511,7 @@ def delete_subcategory_tab_widget():
 
     # --- Form Structure ---
     st.title("Delete Subcategories")
-    st.markdown("Select the subcategories you wish to remove from the database.")
+    st.markdown("Select the subcategories you wish to remove.")
 
     with st.form(key="delete_subcategory_form"):
         edited_df = st.data_editor(
@@ -507,9 +522,7 @@ def delete_subcategory_tab_widget():
                 ),
                 "ID": None,
                 "Name": st.column_config.TextColumn("Name", disabled=True),
-                "Category": st.column_config.TextColumn(
-                    "Parent Category", disabled=True
-                ),
+                "Category": st.column_config.TextColumn("Category", disabled=True),
                 "Description": st.column_config.TextColumn(
                     "Description", disabled=True
                 ),
@@ -523,6 +536,7 @@ def delete_subcategory_tab_widget():
         delete_button_label = (
             f"Delete {count} Selected Subcategories" if count > 0 else "Delete Selected"
         )
+
         is_delete_submitted = st.form_submit_button(
             delete_button_label, type="primary", key="submit_delete_subcategory"
         )
