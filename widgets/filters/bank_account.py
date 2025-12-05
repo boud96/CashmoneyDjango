@@ -33,6 +33,7 @@ class BankAccountFilter(BaseFilter):
                 options,
                 selection_mode="multi",
                 key=self.widget_key,
+                width="stretch",
             )
 
             col1, col2 = st.columns(2)
