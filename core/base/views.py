@@ -7,6 +7,7 @@ from typing import Optional
 import pandas as pd
 from django.core.files.uploadedfile import UploadedFile
 from django.core.handlers.wsgi import WSGIRequest
+from django.db import IntegrityError
 from django.db.models import QuerySet
 from django.forms import model_to_dict
 from django.http import JsonResponse
@@ -765,8 +766,13 @@ class DeleteKeywordsView(View):
 @method_decorator(csrf_exempt, name="dispatch")
 class CreateCategoryView(View):
     def post(self, request: WSGIRequest) -> JsonResponse:
+        name = None
         try:
-            data = json.loads(request.body)
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON"}, status=400)
+
             name = data.get("name")
             description = data.get("description")
 
@@ -779,7 +785,15 @@ class CreateCategoryView(View):
                 {"message": "Category created successfully", "id": category.id},
                 status=201,
             )
+
+        except IntegrityError:
+            return JsonResponse(
+                {"error": f"A category with the name '{name}' already exists."},
+                status=409,
+            )
+
         except Exception as e:
+            # Catch-all for other unexpected errors
             print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
@@ -788,11 +802,17 @@ class CreateCategoryView(View):
 class DeleteCategoriesView(View):
     def post(self, request: WSGIRequest) -> JsonResponse:
         try:
-            data = json.loads(request.body)
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON"}, status=400)
+
             ids = data.get("ids", [])
 
             if not ids or not isinstance(ids, list):
-                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+                return JsonResponse(
+                    {"message": "No valid IDs list provided"}, status=400
+                )
 
             count, _ = Category.objects.filter(id__in=ids).delete()
 
@@ -808,8 +828,13 @@ class DeleteCategoriesView(View):
 @method_decorator(csrf_exempt, name="dispatch")
 class CreateSubcategoryView(View):
     def post(self, request: WSGIRequest) -> JsonResponse:
+        name = None
         try:
-            data = json.loads(request.body)
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON"}, status=400)
+
             name = data.get("name")
             description = data.get("description")
             category_id = data.get("category_id")
@@ -822,7 +847,7 @@ class CreateSubcategoryView(View):
             try:
                 category = Category.objects.get(id=category_id)
             except Category.DoesNotExist:
-                return JsonResponse({"error": "Category not found"}, status=404)
+                return JsonResponse({"error": "Parent Category not found"}, status=404)
 
             subcategory = Subcategory.objects.create(
                 name=name, description=description, category=category
@@ -832,6 +857,13 @@ class CreateSubcategoryView(View):
                 {"message": "Subcategory created successfully", "id": subcategory.id},
                 status=201,
             )
+
+        except IntegrityError:
+            return JsonResponse(
+                {"error": f"A subcategory with the name '{name}' already exists."},
+                status=409,
+            )
+
         except Exception as e:
             print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
@@ -845,7 +877,9 @@ class DeleteSubcategoriesView(View):
             ids = data.get("ids", [])
 
             if not ids or not isinstance(ids, list):
-                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+                return JsonResponse(
+                    {"message": "No valid IDs list provided"}, status=400
+                )
 
             count, _ = Subcategory.objects.filter(id__in=ids).delete()
 
