@@ -11,13 +11,33 @@ class CategoryFilter(BaseFilter):
         self.widget_key = f"category_filter-{self.model.__name__}"
 
     def _fetch_categories(self):
-        categories = {"None": "None"}
-        categories.update(
-            {
-                str(category.id): category.name
-                for category in self.model.objects.all().order_by("name")
-            }
+        data_categories = {}
+
+        queryset = self.model.objects.all().order_by("name")
+
+        try:
+            self.model._meta.get_field("category")
+            queryset = queryset.select_related("category")
+        except Exception:
+            pass
+
+        for item in queryset:
+            parent = getattr(item, "category", None)
+
+            if parent and hasattr(parent, "name") and parent.name:
+                label = f"{parent.name} - {item.name}"
+            else:
+                label = item.name
+
+            data_categories[str(item.id)] = label
+
+        sorted_data = dict(
+            sorted(data_categories.items(), key=lambda item: item[1].lower())
         )
+
+        categories = {"None": "None"}
+        categories.update(sorted_data)
+
         return categories
 
     def place_widget(self, sidebar=False):
@@ -33,6 +53,7 @@ class CategoryFilter(BaseFilter):
                 options,
                 selection_mode="multi",
                 key=self.widget_key,
+                width="stretch",
             )
 
             col1, col2 = st.columns(2)
