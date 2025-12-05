@@ -1,4 +1,5 @@
 import io
+import json
 import traceback
 from datetime import datetime
 from typing import Optional
@@ -6,6 +7,7 @@ from typing import Optional
 import pandas as pd
 from django.core.files.uploadedfile import UploadedFile
 from django.core.handlers.wsgi import WSGIRequest
+from django.db import IntegrityError
 from django.db.models import QuerySet
 from django.forms import model_to_dict
 from django.http import JsonResponse
@@ -13,7 +15,15 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import CSVMapping, Transaction, BankAccount, Keyword
+from .models import (
+    CSVMapping,
+    Transaction,
+    BankAccount,
+    Keyword,
+    Subcategory,
+    Category,
+    Tag,
+)
 
 
 class TransactionFieldsConstants:
@@ -231,7 +241,7 @@ class ImportTransactionsView(View):
         exclude_keywords = Keyword.objects.none()
         matching_keywords = Keyword.objects.none()
 
-        for keyword in Keyword.objects.all().order_by("value"):
+        for keyword in Keyword.objects.all().order_by("description"):
             all_include_rules = []
             for include_rule in keyword.rules.get("include"):
                 all_include_rules.append(include_rule.lower().replace(" ", ""))
@@ -381,7 +391,6 @@ class ImportTransactionsView(View):
             )
 
         except Exception as e:
-            print(traceback.format_exc())  # TODO: DEBUG remove
             return JsonResponse({"error": str(e)}, status=500)
 
     @staticmethod
@@ -493,7 +502,7 @@ class RecategorizeTransactionsView(View):
         exclude_keywords = Keyword.objects.none()
         matching_keywords = Keyword.objects.none()
 
-        for keyword in Keyword.objects.all().order_by("value"):
+        for keyword in Keyword.objects.all().order_by("description"):
             all_include_rules = []
             for include_rule in keyword.rules.get("include"):
                 all_include_rules.append(include_rule.lower().replace(" ", ""))
@@ -663,5 +672,390 @@ class RecategorizeTransactionsView(View):
             )
 
         except Exception as e:
-            print(traceback.format_exc())  # TODO: DEBUG remove
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateKeywordView(View):
+    """
+    View for creating new Keyword objects.
+    Accepts a JSON payload defining the keyword properties and rules.
+    """
+
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+            description = data.get("description")
+            subcategory_id = data.get("subcategory")
+            wni = data.get("want_need_investment")
+            ignore = data.get("ignore", False)
+            rules = data.get("rules", {})
+
+            if not description:
+                return JsonResponse({"error": "Description is required"}, status=400)
+            if not subcategory_id:
+                return JsonResponse({"error": "Subcategory ID is required"}, status=400)
+
+            try:
+                subcategory = Subcategory.objects.get(id=subcategory_id)
+            except Subcategory.DoesNotExist:
+                return JsonResponse(
+                    {"error": f"Subcategory with id {subcategory_id} does not exist"},
+                    status=404,
+                )
+
+            keyword = Keyword.objects.create(
+                description=description,
+                subcategory=subcategory,
+                want_need_investment=wni,
+                ignore=ignore,
+                rules=rules,
+            )
+
+            return JsonResponse(
+                {
+                    "message": "Keyword created successfully",
+                    "id": keyword.id,
+                    "description": keyword.description,
+                    "subcategory": str(keyword.subcategory),
+                },
+                status=201,
+            )
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteKeywordsView(View):
+    """
+    View for bulk deleting Keyword objects.
+    Accepts a JSON payload: {"ids": ["uuid1", "uuid2", ...]}
+    """
+
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON format"}, status=400)
+
+            ids = data.get("ids", [])
+
+            if not isinstance(ids, list):
+                return JsonResponse({"error": "'ids' must be a list"}, status=400)
+
+            if not ids:
+                return JsonResponse({"message": "No IDs provided"}, status=200)
+
+            deleted_count, _ = Keyword.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "Keywords deleted successfully", "count": deleted_count},
+                status=200,
+            )
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateCategoryView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        name = None
+        try:
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+            name = data.get("name")
+            description = data.get("description")
+
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+
+            category = Category.objects.create(name=name, description=description)
+
+            return JsonResponse(
+                {"message": "Category created successfully", "id": category.id},
+                status=201,
+            )
+
+        except IntegrityError:
+            return JsonResponse(
+                {"error": f"A category with the name '{name}' already exists."},
+                status=409,
+            )
+
+        except Exception as e:
+            # Catch-all for other unexpected errors
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteCategoriesView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse(
+                    {"message": "No valid IDs list provided"}, status=400
+                )
+
+            count, _ = Category.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "Categories deleted successfully", "count": count},
+                status=200,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateSubcategoryView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        name = None
+        try:
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+            name = data.get("name")
+            description = data.get("description")
+            category_id = data.get("category_id")
+
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+            if not category_id:
+                return JsonResponse({"error": "Category ID is required"}, status=400)
+
+            try:
+                category = Category.objects.get(id=category_id)
+            except Category.DoesNotExist:
+                return JsonResponse({"error": "Parent Category not found"}, status=404)
+
+            subcategory = Subcategory.objects.create(
+                name=name, description=description, category=category
+            )
+
+            return JsonResponse(
+                {"message": "Subcategory created successfully", "id": subcategory.id},
+                status=201,
+            )
+
+        except IntegrityError:
+            return JsonResponse(
+                {"error": f"A subcategory with the name '{name}' already exists."},
+                status=409,
+            )
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteSubcategoriesView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse(
+                    {"message": "No valid IDs list provided"}, status=400
+                )
+
+            count, _ = Subcategory.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "Subcategories deleted successfully", "count": count},
+                status=200,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateBankAccountView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            account_number = data.get("account_number")
+            account_name = data.get("account_name")
+            owners = data.get("owners", 1)
+
+            if not account_number:
+                return JsonResponse({"error": "Account Number is required"}, status=400)
+            if not account_name:
+                return JsonResponse({"error": "Account Name is required"}, status=400)
+
+            bank_account = BankAccount.objects.create(
+                account_number=account_number, account_name=account_name, owners=owners
+            )
+
+            return JsonResponse(
+                {"message": "Bank Account created successfully", "id": bank_account.id},
+                status=201,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteBankAccountsView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+
+            count, _ = BankAccount.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "Bank Accounts deleted successfully", "count": count},
+                status=200,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateCSVMappingView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+
+            name = data.get("name")
+            date_of_transaction_value = data.get("date_of_transaction_value")
+
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+            if not date_of_transaction_value:
+                return JsonResponse(
+                    {"error": "Date of Transaction Column is required"}, status=400
+                )
+
+            other_note_list = data.get("other_note", [])
+            other_note_str = (
+                ",".join(other_note_list) if isinstance(other_note_list, list) else ""
+            )
+
+            categorization_fields = data.get("categorization_fields", [])
+
+            mapping = CSVMapping.objects.create(
+                name=name,
+                amount=data.get("amount"),
+                header=data.get("header", 0),
+                my_note=data.get("my_note"),
+                currency=data.get("currency"),
+                encoding=data.get("encoding", "utf-8"),
+                delimiter=data.get("delimiter", ","),
+                other_note=other_note_str,
+                original_id=data.get("original_id"),
+                constant_symbol=data.get("constant_symbol"),
+                specific_symbol=data.get("specific_symbol"),
+                variable_symbol=data.get("variable_symbol"),
+                transaction_type=data.get("transaction_type"),
+                counterparty_name=data.get("counterparty_name"),
+                counterparty_note=data.get("counterparty_note"),
+                date_of_submission_value=data.get("date_of_submission_value"),
+                date_of_submission_format=data.get("date_of_submission_format"),
+                date_of_transaction_value=date_of_transaction_value,
+                date_of_transaction_format=data.get(
+                    "date_of_transaction_format", "%d.%m.%Y"
+                ),
+                counterparty_account_number=data.get("counterparty_account_number"),
+                counterparty_bank_code=data.get("counterparty_bank_code"),
+                categorization_fields=categorization_fields,
+            )
+
+            return JsonResponse(
+                {"message": "CSV Mapping created successfully", "id": mapping.id},
+                status=201,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteCSVMappingsView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+
+            count, _ = CSVMapping.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "CSV Mappings deleted successfully", "count": count},
+                status=200,
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CreateTagView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            name = data.get("name")
+            description = data.get("description")
+
+            if not name:
+                return JsonResponse({"error": "Name is required"}, status=400)
+
+            tag = Tag.objects.create(name=name, description=description)
+
+            return JsonResponse(
+                {"message": "Tag created successfully", "id": tag.id}, status=201
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class DeleteTagsView(View):
+    def post(self, request: WSGIRequest) -> JsonResponse:
+        try:
+            data = json.loads(request.body)
+            ids = data.get("ids", [])
+
+            if not ids or not isinstance(ids, list):
+                return JsonResponse({"message": "No valid IDs provided"}, status=200)
+
+            count, _ = Tag.objects.filter(id__in=ids).delete()
+
+            return JsonResponse(
+                {"message": "Tags deleted successfully", "count": count}, status=200
+            )
+        except Exception as e:
+            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)

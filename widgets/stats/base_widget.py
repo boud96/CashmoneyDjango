@@ -3,8 +3,8 @@ import pandas as pd
 from django.db.models import QuerySet
 import plotly.express as px
 from pandas import DataFrame
-
 from core.base.models import Transaction
+from itertools import cycle
 
 
 class BaseWidget:
@@ -16,8 +16,7 @@ class BaseWidget:
         """Convert the QuerySet to a DataFrame."""
         if not self.transactions.exists():
             return pd.DataFrame()
-
-        data = pd.DataFrame.from_records(self.transactions.values())
+        data = pd.DataFrame.from_records(list(self.transactions.values()))
         return data
 
     @staticmethod
@@ -27,25 +26,29 @@ class BaseWidget:
             + px.colors.qualitative.Vivid
             + px.colors.qualitative.Pastel
             + px.colors.qualitative.Safe
+            + px.colors.qualitative.Bold
         )
 
     def get_category_color_map(self):
         """Create a consistent color mapping for categories"""
-        unique_categories = sorted(self.df["category_name"].unique())
+        cats = self.df["category_name"].fillna("Uncategorized").astype(str)
+        unique_categories = sorted(cats.unique())
+
         swatches = self.get_color_swatches()
-        color_map = {cat: color for cat, color in zip(unique_categories, swatches)}
-        if "None" in color_map:
-            color_map["None"] = "#808080"
+        color_cycle = cycle(swatches)
+
+        color_map = {cat: next(color_cycle) for cat in unique_categories}
         return color_map
 
     def get_subcategory_color_map(self):
-        # TODO: Reuse the get_category_color_map
         """Create a consistent color mapping for subcategories"""
-        unique_subcategories = sorted(self.df["subcategory_name"].unique())
+        subcats = self.df["subcategory_name"].fillna("Other").astype(str)
+        unique_subcategories = sorted(subcats.unique())
+
         swatches = self.get_color_swatches()
-        color_map = {
-            subcat: color for subcat, color in zip(unique_subcategories, swatches)
-        }
-        if "None" in color_map:
-            color_map["None"] = "#808080"
+        # Use a different offset or reversed list to try and distinguish from categories
+        # (Optional, but helps visual distinction)
+        color_cycle = cycle(swatches[::-1])
+
+        color_map = {subcat: next(color_cycle) for subcat in unique_subcategories}
         return color_map

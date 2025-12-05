@@ -31,7 +31,9 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
-
+CSRF_TRUSTED_ORIGINS = [
+    url for url in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if url
+]
 
 # Application definition
 
@@ -79,14 +81,24 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+IN_DOCKER = os.getenv("RUNNING_IN_DOCKER") == "true"
+if IN_DOCKER:
+    # We are inside Docker: use internal network names
+    db_host = os.getenv("DB_HOST")
+    db_port = os.getenv("DB_PORT")
+else:
+    # We are on Local Windows: connect to localhost and the external port
+    db_host = "localhost"
+    db_port = os.getenv("DB_EXTERNAL_PORT")
+
 DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE"),
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
+        "HOST": db_host,
+        "PORT": db_port,
     }
 }
 
@@ -124,6 +136,10 @@ USE_I18N = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"  # Add this line
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

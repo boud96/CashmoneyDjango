@@ -1,5 +1,19 @@
 import streamlit as st
 from app import app_launcher
+from widgets.edit import (
+    edit_tab_widget,
+    delete_keyword_tab_widget,
+    create_category_tab_widget,
+    delete_category_tab_widget,
+    create_subcategory_tab_widget,
+    delete_subcategory_tab_widget,
+    create_bank_account_tab_widget,
+    delete_bank_account_tab_widget,
+    create_csv_mapping_tab_widget,
+    delete_csv_mapping_tab_widget,
+    create_tag_tab_widget,
+    delete_tag_tab_widget,
+)
 
 from widgets.recategorize import recategorize_tab_widget
 from widgets.csv_import import import_form_widget
@@ -17,6 +31,39 @@ from widgets.stats.wni_sunburst import TransactionWNIWidget
 from widgets.stats.overview_stats import OverviewStatsWidget
 import os
 from dotenv import load_dotenv
+
+
+# TODO: Figure out the reruns for the whole app but keep the tabs etc.
+@st.fragment
+def manage_keywords_section():
+    edit_tab_widget()
+    delete_keyword_tab_widget()
+
+
+@st.fragment
+def manage_categories_section():
+    create_category_tab_widget()
+    delete_category_tab_widget()
+    create_subcategory_tab_widget()
+    delete_subcategory_tab_widget()
+
+
+@st.fragment
+def manage_bank_accounts_section():
+    create_bank_account_tab_widget()
+    delete_bank_account_tab_widget()
+
+
+@st.fragment
+def manage_csv_mappings_section():
+    create_csv_mapping_tab_widget()
+    delete_csv_mapping_tab_widget()
+
+
+@st.fragment
+def manage_tags_section():
+    create_tag_tab_widget()
+    delete_tag_tab_widget()
 
 
 def main():
@@ -57,7 +104,7 @@ def main():
     recalculate_by_owners_filter = RecalculateAmountsByOwnersFilter()
     filter_manager.add_filter("recalculate_by_owners", recalculate_by_owners_filter)
 
-    # Add BankAccountFilter  # TODO: Remove None?
+    # Add BankAccountFilter
     bank_account_filter = BankAccountFilter(BankAccount, label="Select Bank Accounts")
     filter_manager.add_filter("bank_account", bank_account_filter)
 
@@ -74,26 +121,28 @@ def main():
         st.json(filter_params, expanded=False)
 
     transactions = Transaction.get_transactions_from_db(filter_params)
-    if not transactions:
-        st.info("No transactions found.")
-        return
 
-    home_tab, recategorize_tab, import_tab = st.tabs(["Home", "Recategorize", "Import"])
+    home_tab, recategorize_tab, import_tab, edit_tab = st.tabs(
+        ["Home", "Recategorize", "Import", "Edit"]
+    )
     with home_tab:
-        # Overview Stats
-        overview_stats = OverviewStatsWidget(transactions, filter_params)
-        overview_stats.place_widget()
+        with st.expander("Overview", expanded=True):
+            # Overview Stats
+            overview_stats = OverviewStatsWidget(transactions, filter_params)
+            overview_stats.place_widget()
 
-        # Bar Chart
-        bar_chart = BarChartWidget(transactions, filter_params)
-        bar_chart.place_widget()
+        with st.expander("Bar Chart", expanded=True):
+            # Bar Chart
+            bar_chart = BarChartWidget(transactions, filter_params)
+            bar_chart.place_widget()
 
-        # Sun Bursts
-        transaction_sunburst = TransactionSunburstWidget(transactions)
-        transaction_sunburst.place_widget()
+        with st.expander("Pie Charts", expanded=True):
+            # Sun Bursts
+            transaction_sunburst = TransactionSunburstWidget(transactions)
+            transaction_sunburst.place_widget()
 
-        widget = TransactionWNIWidget(transactions)
-        widget.place_widget()
+            widget = TransactionWNIWidget(transactions)
+            widget.place_widget()
 
     with recategorize_tab:
         recategorize_tab_widget(transactions)
@@ -101,9 +150,26 @@ def main():
     with import_tab:
         import_form_widget()
 
-    # DataFrame
-    transactions_dataframe = DataFrameWidget(transactions)
-    transactions_dataframe.place_widget()
+    with edit_tab:
+        with st.expander("Keywords"):
+            manage_keywords_section()
+
+        with st.expander("Categories"):
+            manage_categories_section()
+
+        with st.expander("Bank Accounts"):
+            manage_bank_accounts_section()
+
+        with st.expander("CSV Mappings"):
+            manage_csv_mappings_section()
+
+        with st.expander("Tags"):
+            manage_tags_section()
+
+    with st.expander("Transactions", expanded=True):
+        # DataFrame
+        transactions_dataframe = DataFrameWidget(transactions)
+        transactions_dataframe.place_widget()
 
 
 if __name__ == "__main__":

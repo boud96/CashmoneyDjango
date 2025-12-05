@@ -8,6 +8,7 @@ class TagFilter(BaseFilter):
         self.model = model
         self.label = label
         self.tags = self._fetch_tags()
+        self.widget_key = "tag_filter"
 
     def _fetch_tags(self):
         tags = {"None": "None"}
@@ -16,52 +17,36 @@ class TagFilter(BaseFilter):
         )
         return tags
 
-    def _update_selected(self):
-        """Callback function to update session state when the pills selection changes."""
-        selected = st.session_state.get("tag_filter")
-        st.session_state["selected_tags"] = selected
-
-    def _select_all(self):
-        """Callback function to select all tags."""
-        options = list(self.tags.values())
-        st.session_state["selected_tags"] = options
-
-    def _deselect_all(self):
-        """Callback function to deselect all tags."""
-        st.session_state["selected_tags"] = []
-
     def place_widget(self, sidebar=False):
         location = st.sidebar if sidebar else st
         options = list(self.tags.values())
 
-        if "selected_tags" not in st.session_state:
-            st.session_state["selected_tags"] = options
+        if self.widget_key not in st.session_state:
+            st.session_state[self.widget_key] = options
 
         with location.expander(f"{self.label}", expanded=True):
             selected = st.pills(
                 f"Select {self.label}",
                 options,
                 selection_mode="multi",
-                default=st.session_state["selected_tags"],
-                key="tag_filter",
-                on_change=self._update_selected,
+                key=self.widget_key,
             )
 
             col1, col2 = st.columns(2)
             with col1:
-                if st.button(
+                st.button(
                     "Select All",
                     key="select_all_tags",
-                    on_click=self._select_all,
-                ):
-                    pass
+                    on_click=self.select_all,
+                    args=(self.widget_key, options),
+                )
             with col2:
-                if st.button(
+                st.button(
                     "Deselect All",
                     key="deselect_all_tags",
-                    on_click=self._deselect_all,
-                ):
-                    pass
+                    on_click=self.deselect_all,
+                    args=(self.widget_key,),
+                )
 
             selected_ids = [
                 key for key, value in self.tags.items() if value in selected

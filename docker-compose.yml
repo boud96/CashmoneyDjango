@@ -4,7 +4,6 @@ services:
     image: postgres:15
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-#      - ./init_data.sql:/docker-entrypoint-initdb.d/init_data.sql:ro  # TODO: Uncomment to include a sample db? Commit the .sql file?
     env_file:
       - .env
     environment:
@@ -12,7 +11,7 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     ports:
-      - "5433:5432"
+      - "${DB_EXTERNAL_PORT}:${DB_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
@@ -25,13 +24,24 @@ services:
     command: django
     volumes:
       - .:/app
+      - /app/.venv
+      - /app/.git
     ports:
-      - "8000:8000"
+      - "${DJANGO_PORT}:${DJANGO_PORT}"
     env_file:
       - .env
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
+      - RUNNING_IN_DOCKER=true
+      - DJANGO_PORT=${DJANGO_PORT}
+      # DB Vars
+      - DB_ENGINE=${DB_ENGINE}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      # Server Vars
+      - DJANGO_PORT=${DJANGO_PORT}
     depends_on:
       db:
         condition: service_healthy
@@ -42,13 +52,26 @@ services:
     command: streamlit
     volumes:
       - .:/app
+      - /app/.venv
+      - /app/.git
     ports:
-      - "8501:8501"
+      - "${STREAMLIT_PORT}:${STREAMLIT_PORT}"
     env_file:
       - .env
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
+      - RUNNING_IN_DOCKER=true
+      # DB Vars
+      - DB_ENGINE=${DB_ENGINE}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      # Server Vars
+      - STREAMLIT_PORT=${STREAMLIT_PORT}
+      - STREAMLIT_BROWSER_SERVER_ADDRESS=${STREAMLIT_BROWSER_SERVER_ADDRESS}
+      - STREAMLIT_SERVER_ADDRESS=${STREAMLIT_SERVER_ADDRESS}
+      - API_BASE_URL=http://django:${DJANGO_PORT}/
     depends_on:
       - django
 

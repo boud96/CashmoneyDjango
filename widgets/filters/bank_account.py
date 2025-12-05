@@ -8,6 +8,7 @@ class BankAccountFilter(BaseFilter):
         self.model = model
         self.label = label
         self.bank_accounts = self._fetch_bank_accounts()
+        self.widget_key = "bank_account_filter"
 
     def _fetch_bank_accounts(self):
         bank_accounts = {"None": "None"}
@@ -19,56 +20,37 @@ class BankAccountFilter(BaseFilter):
         )
         return bank_accounts
 
-    def _update_selected(self):
-        """Callback function to update session state when the pills selection changes."""
-        selected = st.session_state.get("bank_account_filter")
-        st.session_state["selected_bank_accounts"] = selected
-
-    def _select_all(self):
-        """Callback function to select all bank accounts."""
-        options = list(self.bank_accounts.values())
-        st.session_state["selected_bank_accounts"] = options
-
-    def _deselect_all(self):
-        """Callback function to deselect all bank accounts."""
-        st.session_state["selected_bank_accounts"] = []
-
     def place_widget(self, sidebar=False):
         location = st.sidebar if sidebar else st
         options = list(self.bank_accounts.values())
 
-        # Initialize session state for selection tracking if not already done
-        if "selected_bank_accounts" not in st.session_state:
-            st.session_state["selected_bank_accounts"] = options
+        if self.widget_key not in st.session_state:
+            st.session_state[self.widget_key] = options
 
         with location.expander(f"{self.label}", expanded=True):
             selected = st.pills(
                 f"Select {self.label}",
                 options,
                 selection_mode="multi",
-                default=st.session_state["selected_bank_accounts"],
-                key="bank_account_filter",
-                on_change=self._update_selected,  # Register the callback
+                key=self.widget_key,
             )
 
-            # Columns for select/deselect buttons inside the expander
             col1, col2 = st.columns(2)
             with col1:
-                if st.button(
+                st.button(
                     "Select All",
                     key="select_all_bank_accounts",
-                    on_click=self._select_all,
-                ):
-                    pass  # The actual change will happen in the callback
+                    on_click=self.select_all,
+                    args=(self.widget_key, options),
+                )
             with col2:
-                if st.button(
+                st.button(
                     "Deselect All",
                     key="deselect_all_bank_accounts",
-                    on_click=self._deselect_all,
-                ):
-                    pass  # The actual change will happen in the callback
+                    on_click=self.deselect_all,
+                    args=(self.widget_key,),
+                )
 
-            # Map selected options back to bank account IDs
             selected_ids = [
                 key for key, value in self.bank_accounts.items() if value in selected
             ]

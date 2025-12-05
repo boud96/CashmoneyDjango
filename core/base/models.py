@@ -1,6 +1,7 @@
 import uuid
 
 import pandas as pd
+from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
 from django.db.models import (
     Q,
@@ -8,10 +9,11 @@ from django.db.models import (
     F,
     ExpressionWrapper,
     DecimalField,
-    Value,
-    CharField,
+    Subquery,
 )
 from multiselectfield import MultiSelectField
+
+from constants import ModelConstants
 
 
 # TODO: Add plural names
@@ -47,13 +49,6 @@ class BankAccount(AbstractBaseModel):
 
 
 class Transaction(AbstractBaseModel):
-    WNI_CHOICES = [
-        ("want", "Want"),
-        ("investment", "Investment"),
-        ("need", "Need"),
-        ("other", "Other"),
-    ]
-
     @classmethod
     def get_field_names(cls) -> list:
         return [field.name for field in cls._meta.get_fields()]
@@ -135,6 +130,7 @@ class Transaction(AbstractBaseModel):
                 query &= Q(transactiontag__tag__in=tags)
 
         field_names = cls.get_field_names()
+        fields_to_select = [name for name in field_names if name != "transactiontag"]
         related_fields = [
             "subcategory__name",
             "subcategory__category__name",
@@ -149,20 +145,30 @@ class Transaction(AbstractBaseModel):
                 output_field=DecimalField(max_digits=2, decimal_places=2),
             )
 
+        tags_subquery = Subquery(
+            cls.objects.filter(pk=models.OuterRef("pk"))
+            .annotate(
+                aggregated_tags=StringAgg(
+                    "transactiontag__tag__name", delimiter=", ", distinct=True
+                )
+            )
+            .values("aggregated_tags")[:1]
+        )
+
         annotation = {
             "subcategory_name": F("subcategory__name"),
             "category_name": F("subcategory__category__name"),
             "account_name": F("bank_account__account_name"),
             "owners": F("bank_account__owners"),
             "effective_amount": effective_amount,
-            "tags": Value("", output_field=CharField()),
+            "tags": tags_subquery,
         }
 
         transactions = (
             cls.objects.filter(query)
             .annotate(**annotation)
             .values(
-                *field_names,
+                *fields_to_select,
                 *related_fields,
                 "subcategory_name",
                 "category_name",
@@ -171,6 +177,7 @@ class Transaction(AbstractBaseModel):
                 "effective_amount",
                 "tags",
             )
+            .distinct()
         ).order_by("-date_of_transaction")
 
         return transactions
@@ -200,7 +207,7 @@ class Transaction(AbstractBaseModel):
     date_of_transaction = models.DateTimeField(null=False, blank=False)
 
     bank_account = models.ForeignKey(
-        "BankAccount", on_delete=models.CASCADE, null=True, blank=True
+        "BankAccount", on_delete=models.SET_NULL, null=True, blank=True
     )
 
     counterparty_account_number = models.CharField(
@@ -222,10 +229,10 @@ class Transaction(AbstractBaseModel):
     )
     currency = models.CharField(max_length=3, null=False, blank=False)
     subcategory = models.ForeignKey(
-        "Subcategory", on_delete=models.CASCADE, null=True, blank=True
+        "Subcategory", on_delete=models.SET_NULL, null=True, blank=True
     )
     want_need_investment = models.CharField(
-        max_length=128, choices=WNI_CHOICES, null=True, blank=True
+        max_length=128, choices=ModelConstants.WNI_CHOICES, null=True, blank=True
     )
     ignore = models.BooleanField(default=False)
 
@@ -235,7 +242,7 @@ class Transaction(AbstractBaseModel):
 
 
 class Category(AbstractBaseModel):
-    name = models.CharField(max_length=128, null=False, blank=False)
+    name = models.CharField(max_length=128, null=False, blank=False, unique=True)
     description = models.TextField(null=True, blank=True)
 
     class Meta:
@@ -252,13 +259,14 @@ class Subcategory(AbstractBaseModel):
 
     class Meta:
         ordering = ["category__name", "name"]
+        unique_together = ("name", "category")
 
     def __str__(self):
         return f"{self.name} ({self.category})"
 
 
 class Tag(AbstractBaseModel):
-    name = models.CharField(max_length=128, null=False, blank=False)
+    name = models.CharField(max_length=128, null=False, blank=False, unique=True)
     description = models.TextField(null=True, blank=True)
 
     def __str__(self):
@@ -275,39 +283,36 @@ class TransactionTag(AbstractBaseModel):
 
 def get_default_keyword_rules():
     return {
-        "include": [],
-        "exclude": [],
+        ModelConstants.INCLUDE_RULE_KEY: [],
+        ModelConstants.EXCLUDE_RULE_KEY: [],
     }
 
 
 class Keyword(AbstractBaseModel):
-    INCLUDE_RULE_KEY = "include"
-    EXCLUDE_RULE_KEY = "exclude"
-
-    value = models.CharField(max_length=128, null=False, blank=False, unique=True)
+    description = models.CharField(max_length=128, null=True, blank=True)
     rules = models.JSONField(
         max_length=128, null=False, blank=True, default=get_default_keyword_rules
     )
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE)
     want_need_investment = models.CharField(
-        max_length=128, choices=Transaction.WNI_CHOICES, null=True, blank=True
+        max_length=128, choices=ModelConstants.WNI_CHOICES, null=True, blank=True
     )
     ignore = models.BooleanField(default=False)
 
     def get_include_rules(self):
-        return self.rules.get(self.INCLUDE_RULE_KEY, []) if self.rules else []
+        return self.rules.get(ModelConstants.INCLUDE_RULE_KEY, []) if self.rules else []
 
     def get_exclude_rules(self):
-        return self.rules.get(self.EXCLUDE_RULE_KEY, []) if self.rules else []
+        return self.rules.get(ModelConstants.EXCLUDE_RULE_KEY, []) if self.rules else []
 
     def set_rules(self, include=None, exclude=None):
         self.rules = {
-            self.INCLUDE_RULE_KEY: include or [],
-            self.EXCLUDE_RULE_KEY: exclude or [],
+            ModelConstants.INCLUDE_RULE_KEY: include or [],
+            ModelConstants.EXCLUDE_RULE_KEY: exclude or [],
         }
 
     def __str__(self):
-        return f"{self.value} - {self.subcategory}"
+        return f"{self.description} - {self.subcategory}"
 
 
 def get_default_bank_account():

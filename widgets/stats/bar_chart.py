@@ -1,5 +1,5 @@
 from datetime import timedelta
-
+import altair as alt
 from widgets.stats.base_widget import BaseWidget
 import pandas as pd
 import streamlit as st
@@ -91,8 +91,43 @@ class BarChartWidget(BaseWidget):
         return grouped.set_index("month_year")
 
     def place_widget(self):
-        st.bar_chart(
-            self.make_df(),
-            color=["#000000", "#ffabab", "#3dd56d"],
-            stack="layered",
+        df = self.make_df().reset_index()
+        if self.df.empty:
+            st.info("No transactions found.")
+            return
+
+        tooltip_config = [
+            alt.Tooltip("month_year", title="Month"),
+            alt.Tooltip("Sum_Positive:Q", title="Income", format=",.2f"),
+            alt.Tooltip("Sum_Negative:Q", title="Expenses", format=",.2f"),
+            alt.Tooltip("Difference:Q", title="Net Profit", format=",.2f"),
+        ]
+
+        base = alt.Chart(df).encode(x=alt.X("month_year", title="Month"))
+
+        pos_neg_bars = (
+            base.transform_fold(["Sum_Positive", "Sum_Negative"])
+            .mark_bar(width={"band": 1})
+            .encode(
+                y=alt.Y(
+                    "value:Q", title="Value", axis=alt.Axis(grid=True, domain=True)
+                ),
+                color=alt.Color(
+                    "key:N",
+                    scale=alt.Scale(
+                        domain=["Sum_Positive", "Sum_Negative"],
+                        range=["#3dd56d", "#ffabab"],
+                    ),
+                    legend=None,
+                ),
+                tooltip=tooltip_config,
+            )
+        )
+
+        diff_bar = base.mark_bar(width={"band": 0.25}, color="#599af0").encode(
+            y=alt.Y("Difference:Q", title="Value"), tooltip=tooltip_config
+        )
+
+        st.altair_chart(
+            (pos_neg_bars + diff_bar).interactive(),
         )
