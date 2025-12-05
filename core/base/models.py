@@ -242,7 +242,7 @@ class Transaction(AbstractBaseModel):
 
 
 class Category(AbstractBaseModel):
-    name = models.CharField(max_length=128, null=False, blank=False)
+    name = models.CharField(max_length=128, null=False, blank=False, unique=True)
     description = models.TextField(null=True, blank=True)
 
     class Meta:
@@ -259,13 +259,14 @@ class Subcategory(AbstractBaseModel):
 
     class Meta:
         ordering = ["category__name", "name"]
+        unique_together = ("name", "category")
 
     def __str__(self):
         return f"{self.name} ({self.category})"
 
 
 class Tag(AbstractBaseModel):
-    name = models.CharField(max_length=128, null=False, blank=False)
+    name = models.CharField(max_length=128, null=False, blank=False, unique=True)
     description = models.TextField(null=True, blank=True)
 
     def __str__(self):
