@@ -1,47 +1,29 @@
 import io
 import json
-import traceback
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
 import pandas as pd
 
 from django.core.files.uploadedfile import UploadedFile
 from django.core.handlers.wsgi import WSGIRequest
 from django.db import IntegrityError
-from django.db.models import QuerySet
 from django.forms.models import model_to_dict
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import (
+from core.base.models import (
     CSVMapping,
     Transaction,
     BankAccount,
-    Keyword,
     Subcategory,
+    Keyword,
     Category,
     Tag,
 )
-
-
-@dataclass
-class CategorizationResult:
-    subcategory: Optional[object] = None
-    want_need_investment: Optional[str] = None
-    ignore: bool = False
-    is_category_overlap: bool = False
-    is_uncategorized: bool = False
-
-    def to_dict(self):
-        return {
-            "subcategory": self.subcategory,
-            "want_need_investment": self.want_need_investment,
-            "ignore": self.ignore,
-        }
+from core.services import CategorizationService
 
 
 class TransactionImporter:
@@ -52,6 +34,7 @@ class TransactionImporter:
         self.bank_account = bank_account
         self.file = file
 
+        self.cat_service = CategorizationService()
         # Output lists
         self.created = []
         self.already_imported = []
@@ -61,13 +44,10 @@ class TransactionImporter:
         self.errors = []
 
     def run(self) -> dict:
-        """Main execution method."""
         try:
             df = self._prepare_df()
         except Exception as e:
             return {"error": f"Failed to parse CSV: {str(e)}"}
-
-        self.keywords = list(Keyword.objects.all().order_by("description"))
 
         for index, row in df.iterrows():
             try:
@@ -96,12 +76,10 @@ class TransactionImporter:
             dtype=str,
         ).fillna("")
 
-        # Clean whitespace
         df.columns = df.columns.str.replace(r"\xa0", " ", regex=True)
         df = df.map(
             lambda x: x.replace(r"\xa0", " ").strip() if isinstance(x, str) else x
         )
-
         return df
 
     def _process_row(self, row: pd.Series):
@@ -112,8 +90,8 @@ class TransactionImporter:
         data["raw_data"] = row.to_dict()
 
         # 3. Categorization
-        cat_string = self._create_categorization_string(data)
-        cat_result = self._apply_categorization(cat_string, data)
+        cat_string = self.cat_service.get_categorization_string(data, self.csv_map)
+        cat_result = self.cat_service.apply_categorization(cat_string, data)
 
         data.update(cat_result.to_dict())
 
@@ -193,79 +171,7 @@ class TransactionImporter:
             "counterparty_name": row.get(map.counterparty_name),
         }
 
-    def _create_categorization_string(self, data: dict) -> str:
-        parts = []
-        for field_name in self.csv_map.categorization_fields:
-            val = data.get(field_name)
-            if val:
-                parts.append(str(val))
-        return " | ".join(parts)
-
-    def _apply_categorization(
-        self, cat_string: str, data: dict
-    ) -> CategorizationResult:
-        cat_string = cat_string.lower().replace(" ", "")
-        result = CategorizationResult()
-
-        # Hard check for own account transfer
-        if BankAccount.objects.filter(
-            account_number=data.get("counterparty_account_number")
-        ).exists():
-            result.ignore = True
-            return result
-
-        matched = []
-
-        for keyword in self.keywords:
-
-            def check_rules(rules):
-                norm_rules = [r.lower().replace(" ", "") for r in rules]
-                return all(r in cat_string for r in norm_rules)
-
-            include = check_rules(keyword.rules.get("include", []))
-            exclude = False
-            if include:
-                exclude = any(
-                    r.lower().replace(" ", "") in cat_string
-                    for r in keyword.rules.get("exclude", [])
-                )
-
-            if include and not exclude:
-                matched.append(keyword)
-
-        if not matched:
-            result.is_uncategorized = True
-            return result
-
-        if len(matched) == 1:
-            k = matched[0]
-            result.subcategory = k.subcategory
-            result.want_need_investment = k.want_need_investment
-            result.ignore = k.ignore
-            return result
-
-        first = matched[0]
-        all_same = all(
-            m.subcategory == first.subcategory
-            and m.want_need_investment == first.want_need_investment
-            and m.ignore == first.ignore
-            for m in matched
-        )
-
-        if all_same:
-            result.subcategory = first.subcategory
-            result.want_need_investment = first.want_need_investment
-            result.ignore = first.ignore
-        else:
-            result.is_category_overlap = True
-
-        return result
-
     def _is_duplicate(self, transaction: Transaction) -> bool:
-        """
-        Checks logic for duplicates and appends to internal lists.
-        Returns True if it is a duplicate/skipped, False if it should be created.
-        """
         if transaction.original_id:
             exists = Transaction.objects.filter(
                 original_id=transaction.original_id,
@@ -276,7 +182,6 @@ class TransactionImporter:
                 self.already_imported.append(transaction)
                 return True
         else:
-            # Fallback for transactions without IDs (fuzzy match)
             exists = Transaction.objects.filter(
                 date_of_transaction=transaction.date_of_transaction,
                 amount=transaction.amount,
@@ -286,7 +191,6 @@ class TransactionImporter:
             if exists:
                 self.possible_duplicates.append(transaction)
                 return True
-
         return False
 
     def _generate_report(self, total_loaded: int) -> dict:
@@ -301,7 +205,7 @@ class TransactionImporter:
                 },
                 "uncategorized": {
                     "count": len(self.uncategorized),
-                    "transactions": self.uncategorized,  # Already dicts
+                    "transactions": self.uncategorized,
                 },
             },
             "skipped": {
@@ -370,233 +274,91 @@ class ImportTransactionsView(View):
         return JsonResponse(report, status=201)
 
 
-@method_decorator(csrf_exempt, name="dispatch")  # TODO: Make this view secure and stuff
+@method_decorator(csrf_exempt, name="dispatch")
 class RecategorizeTransactionsView(View):
-    """
-    View for recategorizing transactions.
+    def post(self, request):
+        try:
+            body = json.loads(request.body)
+            transaction_ids = body.get("transaction_ids", [])
+        except json.JSONDecodeError:
+            return HttpResponseBadRequest("Invalid JSON body")
 
-    This view loads transactions from the Transaction model and recategorizes them.
+        if not transaction_ids:
+            return JsonResponse({"message": "No transactions provided."}, status=200)
 
-    It accepts a list of UUIDs and a list of fields to use for categorization.
-    """
+        # 1. Fetch Transactions
+        transactions = Transaction.objects.filter(
+            id__in=transaction_ids
+        ).select_related("bank_account", "bank_account__csv_mapping")
 
-    def _create_categorization_string(
-        self, transaction: Transaction, fields=None
-    ) -> str:
-        """
-        Create a categorization string from a Transaction object.
-
-        This is similar to the create_categorization_string function but works directly
-        with Transaction objects instead of using CSV mappings.  # TODO: Make a Base class for overlapping methods - maybe not this one?
-
-        Args:
-            transaction: The Transaction object to create a categorization string from.
-            fields: Optional list of fields to use for categorization. Must be a subset of
-                   CSVMapping.ALLOWED_FIELDS. If not provided, all ALLOWED_FIELDS are used.
-        """
-
-        if fields:
-            invalid_fields = [
-                field for field in fields if field not in CSVMapping.ALLOWED_FIELDS
-            ]
-            if invalid_fields:
-                raise ValueError(
-                    f"Invalid fields: {', '.join(invalid_fields)}. Fields must be in CSVMapping.ALLOWED_FIELDS."
-                )
-
-        categorization_parts = []
-        for field_name in fields:
-            value = getattr(transaction, field_name, None)
-            if value:
-                categorization_parts.append(str(value))
-
-        categorization_string = " | ".join(categorization_parts)
-        return categorization_string
-
-    @staticmethod
-    def _get_matching_keyword_objs(categorization_string: str) -> QuerySet[Keyword]:
-        """
-        Get matching keyword objects for a categorization string.
-
-        This is the same as ImportTransactionsView._get_matching_keyword_objs.  # TODO: Make a Base class for overlapping methods
-        """
-        categorization_string = categorization_string.lower().replace(" ", "")
-
-        include_keywords = Keyword.objects.none()
-        exclude_keywords = Keyword.objects.none()
-        matching_keywords = Keyword.objects.none()
-
-        for keyword in Keyword.objects.all().order_by("description"):
-            all_include_rules = []
-            for include_rule in keyword.rules.get("include"):
-                all_include_rules.append(include_rule.lower().replace(" ", ""))
-
-            all_exclude_rules = []
-            for exclude_rule in keyword.rules.get("exclude"):
-                all_exclude_rules.append(exclude_rule.lower().replace(" ", ""))
-
-            if all(
-                include_rule in categorization_string
-                for include_rule in all_include_rules
-            ):
-                include_keywords = include_keywords | Keyword.objects.filter(
-                    id=keyword.id
-                )
-
-            if any(
-                exclude_rule in categorization_string
-                for exclude_rule in all_exclude_rules
-            ):
-                exclude_keywords = exclude_keywords | Keyword.objects.filter(
-                    id=keyword.id
-                )
-
-            matching_keywords = include_keywords.exclude(id__in=exclude_keywords)
-
-        return matching_keywords
-
-    @staticmethod
-    def _create_categorization_dict(
-        matching_keywords: QuerySet[Keyword], transaction_data: dict
-    ) -> (dict, bool, bool):
-        """
-        Create a categorization dictionary from matching keywords.
-
-        This is the same as ImportTransactionsView._create_categorization_dict.  # TODO: Make a Base class for overlapping methods
-        """
-        subcategory = None
-        want_need_investment = None
-
-        is_category_overlap = False
-        is_uncategorized = False
-        ignore = False
-
-        if len(matching_keywords) == 1:
-            subcategory = matching_keywords[0].subcategory
-            want_need_investment = matching_keywords[0].want_need_investment
-            ignore = matching_keywords[0].ignore if matching_keywords else False
-
-        elif len(matching_keywords) > 1:
-            for i in matching_keywords:
-                if (
-                    # If all matched keywords have the same subcategories, wni and ignore,
-                    # just pick the first occurrence since they are the same
-                    i.subcategory != matching_keywords[0].subcategory
-                    or i.want_need_investment
-                    != matching_keywords[0].want_need_investment
-                    or i.ignore != matching_keywords[0].ignore
-                ):
-                    is_category_overlap = True
-                    break
-
-            if not is_category_overlap:
-                subcategory = matching_keywords[0].subcategory
-                want_need_investment = matching_keywords[0].want_need_investment
-        else:
-            is_uncategorized = True
-
-        if BankAccount.objects.filter(
-            account_number=transaction_data.get(
-                TransactionFieldsConstants.COUNTERPARTY_ACCOUNT_NUMBER
+        if not transactions.exists():
+            return JsonResponse(
+                {"message": "No matching transactions found."}, status=404
             )
-        ).exists():
-            ignore = True
 
-        categorization_dict = {
-            TransactionFieldsConstants.SUBCATEGORY: subcategory,
-            TransactionFieldsConstants.WANT_NEED_INVESTMENT: want_need_investment,
-            TransactionFieldsConstants.IGNORE: ignore,
+        # 2. Initialize Service
+        service = CategorizationService()
+
+        updated_transactions = []
+        stats = {
+            "processed": 0,
+            "updated": 0,
+            "uncategorized": 0,
+            "overlap": 0,
+            "skipped_no_mapping": 0,
         }
 
-        return categorization_dict, is_category_overlap, is_uncategorized
+        # 3. Iterate and Recalculate
+        for transaction in transactions:
+            stats["processed"] += 1
 
-    def post(self, request: WSGIRequest) -> JsonResponse:
-        """
-        Handle POST requests to recategorize transactions.
-        """
-        try:
-            uuids = request.POST.getlist("uuids", [])
-            fields = request.POST.getlist("fields", [])
+            # A. Resolve Mapping automatically
+            bank_account = transaction.bank_account
 
-            updated = []
-            category_overlap = []
-            uncategorized = []
-            if uuids and fields:
-                transactions = Transaction.objects.filter(id__in=uuids)
-                for transaction in transactions:
-                    transaction_data = {
-                        TransactionFieldsConstants.ORIGINAL_ID: transaction.original_id,
-                        TransactionFieldsConstants.DATE_OF_SUBMISSION: transaction.date_of_submission,
-                        TransactionFieldsConstants.DATE_OF_TRANSACTION: transaction.date_of_transaction,
-                        TransactionFieldsConstants.AMOUNT: transaction.amount,
-                        TransactionFieldsConstants.CURRENCY: transaction.currency,
-                        TransactionFieldsConstants.BANK_ACCOUNT: transaction.bank_account,
-                        TransactionFieldsConstants.MY_NOTE: transaction.my_note,
-                        TransactionFieldsConstants.OTHER_NOTE: transaction.other_note,
-                        TransactionFieldsConstants.COUNTERPARTY_NOTE: transaction.counterparty_note,
-                        TransactionFieldsConstants.CONSTANT_SYMBOL: transaction.constant_symbol,
-                        TransactionFieldsConstants.SPECIFIC_SYMBOL: transaction.specific_symbol,
-                        TransactionFieldsConstants.VARIABLE_SYMBOL: transaction.variable_symbol,
-                        TransactionFieldsConstants.TRANSACTION_TYPE: transaction.transaction_type,
-                        TransactionFieldsConstants.COUNTERPARTY_ACCOUNT_NUMBER: transaction.counterparty_account_number,
-                        TransactionFieldsConstants.COUNTERPARTY_NAME: transaction.counterparty_name,
-                    }
+            # If transaction has no bank account or that account has no mapping set
+            if (
+                not bank_account
+                or not hasattr(bank_account, "csv_mapping")
+                or not bank_account.csv_mapping
+            ):
+                stats["skipped_no_mapping"] += 1
+                continue
 
-                    categorization_string = self._create_categorization_string(
-                        transaction, fields
-                    )
-                    matching_keywords = self._get_matching_keyword_objs(
-                        categorization_string
-                    )
-                    categorization_dict, is_category_overlap, is_uncategorized = (
-                        self._create_categorization_dict(
-                            matching_keywords, transaction_data
-                        )
-                    )
+            csv_map = bank_account.csv_mapping
 
-                    transaction.subcategory = categorization_dict[
-                        TransactionFieldsConstants.SUBCATEGORY
-                    ]
-                    transaction.want_need_investment = categorization_dict[
-                        TransactionFieldsConstants.WANT_NEED_INVESTMENT
-                    ]
-                    transaction.ignore = categorization_dict[
-                        TransactionFieldsConstants.IGNORE
-                    ]
-                    transaction.save()
+            # B. Prepare Data
+            t_dict = model_to_dict(transaction)
 
-                    if is_category_overlap:
-                        category_overlap.append(transaction)
-                    elif is_uncategorized:
-                        uncategorized.append(transaction)
-                    else:
-                        updated.append(transaction)
+            # C. Service Logic
+            cat_string = service.get_categorization_string(t_dict, csv_map)
+            result = service.apply_categorization(cat_string, t_dict)
 
-            # Create response
-            return JsonResponse(
-                {
-                    "updated": {
-                        "message": f"Successfully recategorized {len(updated)} transactions",
-                        "transactions": [str(transaction) for transaction in updated],
-                    },
-                    "category_overlap": {
-                        "message": f"Uncategorized {len(category_overlap)} transactions due to category overlap",
-                        "transactions": [
-                            str(transaction) for transaction in category_overlap
-                        ],
-                    },
-                    "uncategorized": {
-                        "message": f"Uncategorized {len(uncategorized)} transactions due to no matching keywords",
-                        "transactions": [
-                            str(transaction) for transaction in uncategorized
-                        ],
-                    },
-                },
-                status=200,
+            # D. Check for Changes
+            has_changed = (
+                transaction.subcategory != result.subcategory
+                or transaction.want_need_investment != result.want_need_investment
+                or transaction.ignore != result.ignore
             )
 
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            if has_changed:
+                transaction.subcategory = result.subcategory
+                transaction.want_need_investment = result.want_need_investment
+                transaction.ignore = result.ignore
+                updated_transactions.append(transaction)
+
+            if result.is_uncategorized:
+                stats["uncategorized"] += 1
+            if result.is_category_overlap:
+                stats["overlap"] += 1
+
+        # 4. Bulk Update
+        if updated_transactions:
+            Transaction.objects.bulk_update(
+                updated_transactions, ["subcategory", "want_need_investment", "ignore"]
+            )
+            stats["updated"] = len(updated_transactions)
+
+        return JsonResponse(stats, status=200)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -717,8 +479,6 @@ class CreateCategoryView(View):
             )
 
         except Exception as e:
-            # Catch-all for other unexpected errors
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -745,7 +505,6 @@ class DeleteCategoriesView(View):
                 status=200,
             )
         except Exception as e:
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -789,7 +548,6 @@ class CreateSubcategoryView(View):
             )
 
         except Exception as e:
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -812,7 +570,6 @@ class DeleteSubcategoriesView(View):
                 status=200,
             )
         except Exception as e:
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -839,7 +596,6 @@ class CreateBankAccountView(View):
                 status=201,
             )
         except Exception as e:
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -860,7 +616,6 @@ class DeleteBankAccountsView(View):
                 status=200,
             )
         except Exception as e:
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -919,7 +674,6 @@ class CreateCSVMappingView(View):
                 status=201,
             )
         except Exception as e:
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -940,7 +694,6 @@ class DeleteCSVMappingsView(View):
                 status=200,
             )
         except Exception as e:
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -961,7 +714,6 @@ class CreateTagView(View):
                 {"message": "Tag created successfully", "id": tag.id}, status=201
             )
         except Exception as e:
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -981,5 +733,4 @@ class DeleteTagsView(View):
                 {"message": "Tags deleted successfully", "count": count}, status=200
             )
         except Exception as e:
-            print(traceback.format_exc())
             return JsonResponse({"error": str(e)}, status=500)
