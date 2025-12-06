@@ -571,19 +571,41 @@ def delete_subcategory_tab_widget():
 
 
 def create_bank_account_tab_widget():
+    # --- Fetch Options ---
+    try:
+        mappings = CSVMapping.get_csv_mappings()
+    except Exception as e:
+        st.error(f"Error fetching CSV Mappings: {e}")
+        return
+
+    # Create a lookup dict.
+    mapping_dict = {m.name: m for m in mappings}
+
+    options = ["None"] + list(mapping_dict.keys())
+
     # --- Form Structure ---
     st.title("Create New Bank Account")
 
     with st.form(key="create_bank_account_form"):
         st.header("Account Details")
 
-        account_name = st.text_input(
-            label="Account Name", help="e.g., Main Checking, Savings", max_chars=128
-        )
+        col1, col2 = st.columns(2)
 
-        account_number = st.text_input(label="Account Number", max_chars=128)
+        with col1:
+            account_name = st.text_input(
+                label="Account Name", help="e.g., Main Checking, Savings", max_chars=128
+            )
+            owners = st.number_input(
+                label="Number of Owners", min_value=1, value=1, step=1
+            )
 
-        owners = st.number_input(label="Number of Owners", min_value=1, value=1, step=1)
+        with col2:
+            account_number = st.text_input(label="Account Number", max_chars=128)
+            selected_mapping_name = st.selectbox(
+                label="Default CSV Mapping",
+                options=options,
+                help="Transactions imported for this account will automatically use this mapping rule.",
+            )
 
         is_submitted = st.form_submit_button("Submit", key="submit_create_bank_account")
 
@@ -594,10 +616,15 @@ def create_bank_account_tab_widget():
         elif not account_number:
             st.error("Please provide an Account Number.")
         else:
+            csv_mapping_id = None
+            if selected_mapping_name != "None":
+                csv_mapping_id = str(mapping_dict[selected_mapping_name].id)
+
             payload = {
                 "account_name": account_name,
                 "account_number": account_number,
                 "owners": int(owners),
+                "csv_mapping_id": csv_mapping_id,
             }
 
             try:
