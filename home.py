@@ -151,20 +151,20 @@ def main():
         import_form_widget()
 
     with edit_tab:
-        with st.expander("Keywords"):
-            manage_keywords_section()
-
-        with st.expander("Categories"):
-            manage_categories_section()
+        with st.expander("CSV Mappings"):
+            manage_csv_mappings_section()
 
         with st.expander("Bank Accounts"):
             manage_bank_accounts_section()
 
-        with st.expander("CSV Mappings"):
-            manage_csv_mappings_section()
+        with st.expander("Categories"):
+            manage_categories_section()
 
         with st.expander("Tags"):
             manage_tags_section()
+
+        with st.expander("Keywords"):
+            manage_keywords_section()
 
     with st.expander("Transactions", expanded=True):
         # DataFrame
