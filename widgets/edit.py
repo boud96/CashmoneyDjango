@@ -968,6 +968,8 @@ def create_tag_tab_widget():
     # --- Form Structure ---
     st.title("Create New Tag")
 
+    st.info("Assigning tags to transactions is not yet implemented.")
+
     with st.form(key="create_tag_form"):
         st.header("Tag Details")
 
