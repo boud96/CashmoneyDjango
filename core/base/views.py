@@ -587,14 +587,27 @@ class CreateBankAccountView(View):
             account_number = data.get("account_number")
             account_name = data.get("account_name")
             owners = data.get("owners", 1)
+            csv_mapping_id = data.get("csv_mapping_id")
 
             if not account_number:
                 return JsonResponse({"error": "Account Number is required"}, status=400)
             if not account_name:
                 return JsonResponse({"error": "Account Name is required"}, status=400)
 
+            csv_mapping = None
+            if csv_mapping_id:
+                try:
+                    csv_mapping = CSVMapping.objects.get(id=csv_mapping_id)
+                except CSVMapping.DoesNotExist:
+                    return JsonResponse(
+                        {"error": "Invalid CSV Mapping ID provided"}, status=400
+                    )
+
             bank_account = BankAccount.objects.create(
-                account_number=account_number, account_name=account_name, owners=owners
+                account_number=account_number,
+                account_name=account_name,
+                owners=owners,
+                csv_mapping=csv_mapping,
             )
 
             return JsonResponse(
