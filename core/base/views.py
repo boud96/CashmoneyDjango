@@ -250,20 +250,26 @@ class TransactionFieldsConstants:
 @method_decorator(csrf_exempt, name="dispatch")
 class ImportTransactionsView(View):
     def post(self, request):
-        csv_map_id = request.POST.get("csv_map_id")
         bank_account_id = request.POST.get("bank_account_id")
         csv_file = request.FILES.get("csv_file")
 
-        if not all([csv_map_id, bank_account_id, csv_file]):
+        if not all([bank_account_id, csv_file]):
             return HttpResponseBadRequest(
-                "Missing required fields: csv_map_id, bank_account_id, or csv_file."
+                "Missing required fields: bank_account_id or csv_file."
             )
 
         try:
-            csv_map = CSVMapping.objects.get(id=csv_map_id)
             bank_account = BankAccount.objects.get(id=bank_account_id)
-        except (CSVMapping.DoesNotExist, BankAccount.DoesNotExist):
-            return HttpResponseBadRequest("Invalid CSV Mapping or Bank Account ID.")
+        except BankAccount.DoesNotExist:
+            return HttpResponseBadRequest("Invalid Bank Account ID.")
+
+        if not bank_account.csv_mapping:
+            return HttpResponseBadRequest(
+                f"The Bank Account '{bank_account.account_name}' does not have a default CSV Mapping configured. "
+                "Please go to the Edit tab and assign one."
+            )
+
+        csv_map = bank_account.csv_mapping
 
         importer = TransactionImporter(csv_map, bank_account, csv_file)
         report = importer.run()

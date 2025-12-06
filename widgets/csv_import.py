@@ -2,7 +2,7 @@ import os
 import streamlit as st
 import requests
 import pandas as pd
-from core.base.models import CSVMapping, BankAccount, Transaction
+from core.base.models import BankAccount, Transaction
 from constants import URLConstants
 
 API_URL = (
@@ -96,36 +96,31 @@ def _render_import_results(data: dict):
 def import_form_widget():
     # --- Data Fetching ---
     try:
-        mappings = CSVMapping.get_csv_mappings()
         bank_accounts = BankAccount.get_bank_accounts()
     except Exception as e:
         st.error(f"Error fetching form options: {e}")
         return
 
-    mapping_dict = {m.name: m for m in mappings}
     account_dict = {a.account_name: a for a in bank_accounts}
 
-    if not mapping_dict or not account_dict:
-        st.warning(
-            "Please ensure you have created at least one CSV Mapping and one Bank Account."
-        )
+    if not account_dict:
+        st.warning("Please ensure you have created at least one Bank Account.")
         return
 
     # --- Form Structure ---
     st.title("Import Transactions")
 
     with st.form("import_csv_form"):
-        st.markdown("Upload a CSV file and map it to a specific bank account.")
+        st.markdown(
+            "Upload a CSV file. The mapping rules associated with the selected Bank Account will be applied automatically."
+        )
 
-        col_file, col_opts = st.columns([2, 1])
+        col_file, col_account = st.columns([2, 1])
 
         with col_file:
             uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
-        with col_opts:
-            selected_mapping_name = st.selectbox(
-                "CSV Mapping Rule", options=list(mapping_dict.keys())
-            )
+        with col_account:
             selected_account_name = st.selectbox(
                 "Target Bank Account", options=list(account_dict.keys())
             )
@@ -138,11 +133,15 @@ def import_form_widget():
             st.error("Please upload a valid CSV file.")
             return
 
-        selected_mapping = mapping_dict[selected_mapping_name]
         selected_account = account_dict[selected_account_name]
 
+        if not selected_account.csv_mapping:
+            st.error(
+                f"Error: Account '{selected_account.account_name}' has no CSV Mapping assigned. Please edit the account first."
+            )
+            return
+
         payload = {
-            "csv_map_id": str(selected_mapping.id),
             "bank_account_id": str(selected_account.id),
         }
         files = {"csv_file": uploaded_file}
@@ -156,16 +155,16 @@ def import_form_widget():
                 _render_import_results(response.json())
 
             elif response.status_code == 400:
-                st.error("Validation Error: Please check your inputs.")
+                st.error("Validation Error.")
                 st.write(response.text)
 
             else:
                 st.error(f"Import Failed. Status: {response.status_code}")
-            with st.expander("See Error Details"):
-                try:
-                    st.json(response.json())
-                except ValueError:
-                    st.write(response.text)
+                with st.expander("See Error Details"):
+                    try:
+                        st.json(response.json())
+                    except ValueError:
+                        st.write(response.text)
 
         except requests.exceptions.RequestException as e:
             st.error(f"Connection Error: Could not reach backend. {e}")
