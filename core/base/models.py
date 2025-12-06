@@ -39,6 +39,13 @@ class BankAccount(AbstractBaseModel):
     account_number = models.CharField(max_length=128, blank=False, null=False)
     account_name = models.CharField(max_length=128, null=False, blank=False)
     owners = models.IntegerField(null=False, blank=False, default=1)
+    csv_mapping = models.ForeignKey(
+        "CSVMapping",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bank_accounts",
+    )
 
     def __str__(self):
         return str(self.account_name)
