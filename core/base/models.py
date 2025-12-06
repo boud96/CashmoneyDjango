@@ -79,12 +79,22 @@ class Transaction(AbstractBaseModel):
         bank_accounts = filter_params.get("bank_account")
         tags = filter_params.get("tag")
 
-        extra_keys = [key for key in filter_params if key not in expected_filter_keys]
+        json_filter_keys = [key for key in filter_params if key.startswith("raw_data")]
+        extra_keys = [
+            key
+            for key in filter_params
+            if key not in expected_filter_keys and key not in json_filter_keys
+        ]
 
         if extra_keys:
             raise ValueError(f"Unexpected filter parameters: {', '.join(extra_keys)}")
 
         query = Q()
+
+        for key in json_filter_keys:
+            value = filter_params[key]
+            query &= Q(**{key: value})
+
         if id__in:
             query &= Q(id__in=id__in)
         if date_from is not None:
@@ -235,6 +245,7 @@ class Transaction(AbstractBaseModel):
         max_length=128, choices=ModelConstants.WNI_CHOICES, null=True, blank=True
     )
     ignore = models.BooleanField(default=False)
+    raw_data = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         counterparty = self.counterparty_name if self.counterparty_name else ""
