@@ -271,7 +271,9 @@ class Category(AbstractBaseModel):
 
 
 class Subcategory(AbstractBaseModel):
-    name = models.CharField(max_length=128, null=False, blank=False, unique=True)
+    name = models.CharField(
+        max_length=128, null=False, blank=False, unique=True
+    )  # TODO: not unique
     description = models.TextField(null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
 
