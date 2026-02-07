@@ -1,4 +1,6 @@
 import streamlit as st
+from django.conf import settings
+
 from app import app_launcher
 from widgets.edit import (
     edit_tab_widget,
@@ -120,6 +122,10 @@ def main():
         st.info("Combined Filter Parameters:")
         st.json(filter_params, expanded=False)
 
+    if settings.DEMO_MODE:
+        st.warning(
+            "This is a read-only demo. Check out the [full project on GitHub](https://github.com/your-username/CashmoneyDjango)."
+        )
     transactions = Transaction.get_transactions_from_db(filter_params)
 
     home_tab, recategorize_tab, import_tab, edit_tab = st.tabs(
