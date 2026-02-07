@@ -2,8 +2,9 @@ import os
 import pandas as pd
 import requests
 import streamlit as st
+from django.conf import settings
 
-from constants import URLConstants, ModelConstants
+from constants import URLConstants, ModelConstants, MessageConstants
 from core.base.models import (
     Subcategory,
     Keyword,
@@ -104,6 +105,10 @@ def edit_tab_widget():
         )
 
     # --- Submission Logic ---
+    if is_keyword_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
     if is_keyword_submitted:
         subcategory_id_for_payload = sub_map.get(selected_subcategory_label)
 
@@ -241,7 +246,11 @@ def delete_keyword_tab_widget():
         )
 
     # --- Submission Logic ---
-    if is_delete_submitted:
+    if is_delete_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_delete_submitted:
         if count == 0:
             st.warning("Please select at least one keyword to delete.")
         else:
@@ -287,7 +296,11 @@ def create_category_tab_widget():
         is_submitted = st.form_submit_button("Submit", key="submit_create_category")
 
     # --- Submission Logic ---
-    if is_submitted:
+    if is_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_submitted:
         if not name:
             st.error("Please provide a Category Name.")
         else:
@@ -376,7 +389,11 @@ def delete_category_tab_widget():
         )
 
     # --- Submission Logic ---
-    if is_delete_submitted:
+    if is_delete_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_delete_submitted:
         if count == 0:
             st.warning("Please select at least one category to delete.")
         else:
@@ -435,7 +452,11 @@ def create_subcategory_tab_widget():
         is_submitted = st.form_submit_button("Submit", key="submit_create_subcategory")
 
     # --- Submission Logic ---
-    if is_submitted:
+    if is_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_submitted:
         category_id_for_payload = cat_map.get(selected_category_label)
 
         if not name:
@@ -542,7 +563,11 @@ def delete_subcategory_tab_widget():
         )
 
     # --- Submission Logic ---
-    if is_delete_submitted:
+    if is_delete_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_delete_submitted:
         if count == 0:
             st.warning("Please select at least one subcategory to delete.")
         else:
@@ -610,7 +635,11 @@ def create_bank_account_tab_widget():
         is_submitted = st.form_submit_button("Submit", key="submit_create_bank_account")
 
     # --- Submission Logic ---
-    if is_submitted:
+    if is_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_submitted:
         if not account_name:
             st.error("Please provide an Account Name.")
         elif not account_number:
@@ -707,7 +736,11 @@ def delete_bank_account_tab_widget():
         )
 
     # --- Submission Logic ---
-    if is_delete_submitted:
+    if is_delete_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_delete_submitted:
         if count == 0:
             st.warning("Please select at least one account to delete.")
         else:
@@ -837,7 +870,11 @@ def create_csv_mapping_tab_widget():
         )
 
     # --- Submission Logic ---
-    if is_submitted:
+    if is_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_submitted:
         if not name:
             st.error("Please provide a Mapping Name.")
         elif not date_of_transaction_value:
@@ -963,7 +1000,11 @@ def delete_csv_mapping_tab_widget():
         )
 
     # --- Submission Logic ---
-    if is_delete_submitted:
+    if is_delete_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_delete_submitted:
         if count == 0:
             st.warning("Please select at least one mapping to delete.")
         else:
@@ -1009,7 +1050,11 @@ def create_tag_tab_widget():
         is_submitted = st.form_submit_button("Submit", key="submit_create_tag")
 
     # --- Submission Logic ---
-    if is_submitted:
+    if is_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_submitted:
         if not name:
             st.error("Please provide a Tag Name.")
         else:
@@ -1090,7 +1135,11 @@ def delete_tag_tab_widget():
         )
 
     # --- Submission Logic ---
-    if is_delete_submitted:
+    if is_delete_submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif is_delete_submitted:
         if count == 0:
             st.warning("Please select at least one tag to delete.")
         else:
