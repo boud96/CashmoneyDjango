@@ -1,5 +1,6 @@
 class URLConstants:
     ADMIN = "admin/"
+    REPO_URL = "https://github.com/boud96/CashmoneyDjango"
     IMPORT_TRANSACTIONS = "import-transactions/"
     RECATEGORIZE_TRANSACTIONS = "recategorize-transactions/"
     CREATE_KEYWORDS = "create-keyword/"
