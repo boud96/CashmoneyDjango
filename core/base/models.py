@@ -1,3 +1,4 @@
+import os
 import uuid
 
 import pandas as pd
@@ -10,6 +11,9 @@ from django.db.models import (
     ExpressionWrapper,
     DecimalField,
     Subquery,
+    Func,
+    Value,
+    CharField,
 )
 from multiselectfield import MultiSelectField
 
@@ -59,6 +63,21 @@ class Transaction(AbstractBaseModel):
     @classmethod
     def get_field_names(cls) -> list:
         return [field.name for field in cls._meta.get_fields()]
+
+    @staticmethod
+    def _get_tags_aggregation():
+        """Return the appropriate aggregation for tags based on the database backend."""
+        if os.getenv("DEMO_MODE") == "True":
+            # SQLite-compatible: GROUP_CONCAT
+            return Func(
+                F("transactiontag__tag__name"),
+                Value(", "),
+                function="GROUP_CONCAT",
+                output_field=CharField(),
+            )
+            # Postgres StringAgg
+        else:
+            return StringAgg("transactiontag__tag__name", delimiter=", ", distinct=True)
 
     @classmethod
     def get_transactions_from_db(cls, filter_params: dict) -> QuerySet:
@@ -164,11 +183,7 @@ class Transaction(AbstractBaseModel):
 
         tags_subquery = Subquery(
             cls.objects.filter(pk=models.OuterRef("pk"))
-            .annotate(
-                aggregated_tags=StringAgg(
-                    "transactiontag__tag__name", delimiter=", ", distinct=True
-                )
-            )
+            .annotate(aggregated_tags=cls._get_tags_aggregation())
             .values("aggregated_tags")[:1]
         )
 
