@@ -35,3 +35,10 @@ class WidgetConstants:
         "None": "#c8d6e5",  # Grey
         "Uncategorized": "#c8d6e5",
     }
+
+
+class MessageConstants:
+    # TODO: Add more
+    RECATEGORIZATION_DISABLED = "Recategorization is disabled in the demo."
+    SUBMISSION_DISABLED = "Submission is disabled in the demo."
+    IMPORT_DISABLED = "Import is disabled in the demo."
