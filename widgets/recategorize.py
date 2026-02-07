@@ -2,6 +2,9 @@ import os
 
 import streamlit as st
 import requests
+from django.db.models import QuerySet
+from django.conf import settings
+
 from constants import URLConstants
 
 # TODO: Constant
@@ -11,7 +14,7 @@ API_URL = (
 )
 
 
-def recategorize_tab_widget(transactions):
+def recategorize_tab_widget(transactions: QuerySet):
     st.header("Recategorize Filtered View")
 
     # 1. Validation and Stats
@@ -32,7 +35,14 @@ def recategorize_tab_widget(transactions):
         st.error(f"Could not extract transaction IDs: {e}")
         return
 
-    if st.button(f"Recategorize {count} Transactions", type="primary"):
+    recategorize_button = st.button(
+        f"Recategorize {count} Transactions", type="primary"
+    )
+    if recategorize_button and settings.DEMO_MODE:
+        st.info("Recategorization is disabled in the demo.")
+        return
+
+    elif recategorize_button:
         payload = {"transaction_ids": transaction_ids}
 
         with st.spinner("Processing..."):
