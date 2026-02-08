@@ -102,6 +102,15 @@ DATABASES = {
     }
 }
 
+DEMO_MODE = os.getenv("DEMO_MODE") == "True"
+if DEMO_MODE:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db_demo.sqlite3",
+        }
+    }
+    SECRET_KEY = SECRET_KEY or "demo-insecure-secret-key-for-display-only"
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

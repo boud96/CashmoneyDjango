@@ -2,8 +2,10 @@ import os
 import streamlit as st
 import requests
 import pandas as pd
+from django.conf import settings
+
 from core.base.models import BankAccount, Transaction
-from constants import URLConstants
+from constants import URLConstants, MessageConstants
 
 API_URL = (
     os.getenv("API_BASE_URL", "http://localhost:8000")
@@ -128,7 +130,11 @@ def import_form_widget():
         submitted = st.form_submit_button("Start Import", type="primary")
 
     # --- Submission Logic ---
-    if submitted:
+    if submitted and settings.DEMO_MODE:
+        st.info(MessageConstants.SUBMISSION_DISABLED)
+        return
+
+    elif submitted:
         if uploaded_file is None:
             st.error("Please upload a valid CSV file.")
             return

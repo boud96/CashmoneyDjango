@@ -1,5 +1,6 @@
 class URLConstants:
     ADMIN = "admin/"
+    REPO_URL = "https://github.com/boud96/CashmoneyDjango"
     IMPORT_TRANSACTIONS = "import-transactions/"
     RECATEGORIZE_TRANSACTIONS = "recategorize-transactions/"
     CREATE_KEYWORDS = "create-keyword/"
@@ -35,3 +36,10 @@ class WidgetConstants:
         "None": "#c8d6e5",  # Grey
         "Uncategorized": "#c8d6e5",
     }
+
+
+class MessageConstants:
+    # TODO: Add more
+    RECATEGORIZATION_DISABLED = "Recategorization is disabled in the demo."
+    SUBMISSION_DISABLED = "Submission is disabled in the demo."
+    IMPORT_DISABLED = "Import is disabled in the demo."
